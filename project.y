@@ -31,8 +31,6 @@ decl       :  TYPE ID { if(!ids.existsVar($2)) {
      
            ;
 
-structure   : "struct" ID "{" (TYPE ID)+ "}"
-
 list_param : param
             | list_param ','  param 
             ;
