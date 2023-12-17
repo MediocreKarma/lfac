@@ -1,0 +1,9 @@
+
+GLOBALS
+int x;
+int y;
+
+MAIN
+x := 6;
+y := x;
+END
