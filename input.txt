@@ -1,9 +1,21 @@
+CLASSES
+
+class myClass {
+    int a!!
+    float b!!
+    bool c!!
+}
+
+class yours {
+    char x!!
+}
+
 
 GLOBALS
-int x;
-int y;
+int x!!
+int y!!
 
 MAIN
-x := 6;
-y := x;
+x := 6!!
+y := x!!
 END

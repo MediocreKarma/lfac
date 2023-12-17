@@ -4,16 +4,22 @@
 %}
 %option noyywrap
 %%
-"int"|"float"|"char"|"string"|"bool" {yylval.stringValue = strdup(yytext);return TYPE;}
+
+"int"|"float"|"char"|"string"|"bool" {yylval.stringValue = strdup(yytext); return TYPE;}
+"const" {return CONST;}
 "class" {return CLASS;}
+
+"CLASSES" {return CLASSES;}
 "DEFINITIONS" {return DEFINITIONS;} 
 "GLOBALS" {return GLOBALS;}
 "FUNCTIONS" {return FUNCTIONS;}
 "MAIN" {return MAIN;}
 "END" {return END;}
+
 "true" {yylval.boolValue = true; return BOOLVAL;}
 "false" {yylval.boolValue = false; return BOOLVAL;}
 ":=" {return ASSIGN;}
+"!!" {return SEP;}
 "while" {return WHILE;}
 "for" {return FOR;}
 "if" {return IF;}
