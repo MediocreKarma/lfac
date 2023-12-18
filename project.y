@@ -11,13 +11,16 @@ void yyerror(const char * s);
 class IdList ids;
 %}
 %union {
-     const char* stringValue;
+     char* stringValue;
      long long intValue;
      double floatValue;
      bool boolValue;
      char charValue;
 }
-%token SEP MAIN END ASSIGN WHILE FOR IF DEFINITIONS GLOBALS FUNCTIONS CLASS CLASSES CONST
+%token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN ENDMAIN
+%token SEP ASSIGN
+%token WHILE FOR IF
+%token CLASS CONST ARRAY FN
 %token<stringValue> TYPE ID
 %token<intValue> INTVAL
 %token<floatValue> FLOATVAL
@@ -29,11 +32,9 @@ class IdList ids;
 %start progr
 %%
 
-/*incomplet ca trb adaugate si alea de class definitions si asa*/
-progr: CLASSES classes_block GLOBALS globals_block MAIN block END {printf("The programme is correct!\n");}
+/*nota: momentan niciunul din blocuri nu poate fi gol deci trebe rezolvata si asta*/
+progr: CLASSES classes_block ENDCLASSES GLOBALS globals_block ENDGLOBALS FUNCTIONS functions_block ENDFUNCTIONS MAIN block ENDMAIN {printf("The programme is correct!\n");}
      ;
-
-definitions_block : %empty;
 
 classes_block : class_definition
               | classes_block class_definition
@@ -48,17 +49,17 @@ class_member : decl
                | function_definition
                ;
 
-functions_block :  function_definition SEP
-                | functions_block function_definition SEP;
+functions_block :  function_definition
+                | functions_block function_definition;
 
-function_definition: TYPE ID '(' list_param ')' '{' statement_list '}' 
+function_definition: FN TYPE ID '(' list_param ')' '{' statement_list '}' 
 
 globals_block :  decl SEP
-	      |  globals_block decl SEP
+	      | decl SEP globals_block
 	      ;
       
 
-block : statement_list  
+block : statement_list 
      ;
 
 /* cand ne dam seama ce facem cu tipurile, pe aici trebe construit AST-ul */
@@ -78,8 +79,8 @@ decl       :  TYPE ID { if(!ids.existsVar($2)) {
                     }
            | CONST ID ASSIGN expression {}
            | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {}
-           | TYPE ID '(' list_param ')' /* astea cred ca s function declarations */ {}
-           | TYPE ID '(' ')' {}
+           | FN TYPE ID '(' list_param ')' /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
+           | FN TYPE ID '(' ')' {}
            
            ;
 
@@ -92,8 +93,8 @@ param : TYPE ID
       ; 
      
 
-statement_list :  statement SEP 
-     | statement_list statement SEP
+statement_list :  statement SEP
+     | statement SEP statement_list
      ;
 
 assignment : ID ASSIGN expression {}

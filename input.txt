@@ -1,5 +1,4 @@
 CLASSES
-
 class myClass {
     int a!!
     float b!!
@@ -9,13 +8,20 @@ class myClass {
 class yours {
     char x!!
 }
-
+ENDCLASSES
 
 GLOBALS
 int x!!
 int y!!
+ENDGLOBALS
+
+FUNCTIONS
+fn int abc(int x, int y) {
+    x := 3!!
+}
+ENDFUNCTIONS
 
 MAIN
 x := 6!!
 y := x!!
-END
+ENDMAIN

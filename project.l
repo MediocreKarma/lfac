@@ -8,13 +8,17 @@
 "int"|"float"|"char"|"string"|"bool" {yylval.stringValue = strdup(yytext); return TYPE;}
 "const" {return CONST;}
 "class" {return CLASS;}
+"array" {return ARRAY;}
+"fn" {return FN;}
 
 "CLASSES" {return CLASSES;}
-"DEFINITIONS" {return DEFINITIONS;} 
+"ENDCLASSES" {return ENDCLASSES;}
 "GLOBALS" {return GLOBALS;}
+"ENDGLOBALS" {return ENDGLOBALS;}
 "FUNCTIONS" {return FUNCTIONS;}
+"ENDFUNCTIONS" {return ENDFUNCTIONS;}
 "MAIN" {return MAIN;}
-"END" {return END;}
+"ENDMAIN" {return ENDMAIN;}
 
 "true" {yylval.boolValue = true; return BOOLVAL;}
 "false" {yylval.boolValue = false; return BOOLVAL;}
