@@ -7,5 +7,4 @@ ENDGLOBALS
 MAIN
 x := 6!!
 y := x!!
-str := "Kappa"!!
 ENDMAIN

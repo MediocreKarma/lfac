@@ -86,7 +86,7 @@ decl       : TYPE ID { if(!ids.existsVar($2)) {
                           ids.addVar($1,$2);
                      }
                     }
-           | CONST TYPE ID ASSIGN expression {}
+           | CONST TYPE ID ASSIGN expr {}
            | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {}
            | FN TYPE ID '(' list_param ')' /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
            | FN TYPE ID '(' ')' {}
@@ -106,7 +106,7 @@ statement_list :  statement SEP
      | statement SEP statement_list
      ;
 
-assignment : ID ASSIGN expression {}
+assignment : ID ASSIGN expr {}
            ;
 
 statement: assignment
@@ -115,26 +115,30 @@ statement: assignment
          ;
         
 
-call_list : expression
-           | call_list ',' expression
+call_list : expr
+           | call_list ',' expr
            ;
 
 /* cand ne dam seama ce facem cu tipurile, pe aici trebe construit AST-ul */
-expression : INTVAL {}
-           | BOOLVAL {}
-           | FLOATVAL {}
-           | STRINGVAL {}
-           | '(' expression ')'
-           | expression PLUS expression
-           | expression MINUS expression
-           | expression MUL expression
-           | expression POW expression
-           /*plus absolut toate celelalte valori. function calls, variabile, etc*/
-           | ID {} /* variabila efectiva*/
-           | ID '(' call_list ')' {}  /* function calls */
-           | ID '(' ')' {}
-           /* si pe aici trb adaugate alea cu operatorii, + - < > etc*/
-           ;
+expr : INTVAL {}
+     | BOOLVAL {}
+     | FLOATVAL {}
+     | STRINGVAL {}
+     | '(' expr ')'
+     | expr '+' expr
+     | expr '-' expr
+     | expr '*' expr
+     | expr '/' expr
+     | expr ''
+     /*plus absolut toate celelalte valori. function calls, variabile, etc*/
+     | ID {} /* variabila efectiva*/
+     | ID '(' call_list ')' {}  /* function calls */
+     | ID '(' ')' {}
+     /* si pe aici trb adaugate alea cu operatorii, + - < > etc*/
+     ;
+
+variable  : INTVAL
+          | FLOATVAL
 
 %%
 void yyerror(const char * s){
