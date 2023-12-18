@@ -2,3 +2,4 @@
 *.tab.*
 project
 
+.vscode
