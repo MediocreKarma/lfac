@@ -1,16 +1,27 @@
 #include <iostream>
 #include <string>
 
-class Value {
-
-    enum Type {
-        Bool, 
-        Char,
-        Int,
-        Float,
-        String,
-    };
-
-    
-
+enum Type {
+    Bool, 
+    Char,
+    Int,
+    Float,
+    String,
 };
+
+enum OP {
+    PLUS,
+    MINUS,
+    MULT,
+    POW,
+    DIV
+}
+
+enum Comparison {
+    LE,
+    LEQ,
+    GE,
+    GEQ,
+    EQ,
+    NEQ
+}

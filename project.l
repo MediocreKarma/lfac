@@ -20,17 +20,24 @@
 "MAIN" {return MAIN;}
 "ENDMAIN" {return ENDMAIN;}
 
-"true" {yylval.boolValue = true; return BOOLVAL;}
-"false" {yylval.boolValue = false; return BOOLVAL;}
 ":=" {return ASSIGN;}
 "!!" {return SEP;}
-"while" {return WHILE;}
-"for" {return FOR;}
+
 "if" {return IF;}
+"else" {return ELSE;}
+"while" {return WHILE;}
+"do" {return DO;}
+"for" {return FOR;}
+"return" {return RETURN;}
+
 "+" {return PLUS;}
 "-" {return MINUS;}
 "/" {return DIV;}
 "*" {return MUL;}
+"**" {return POW;}
+"++" {return INCREMENT;}
+"--" {return DECREMENT;}
+
 "<=" {return LEQ;}
 ">=" {return GEQ;}
 "<" {return LT;}
@@ -40,9 +47,14 @@
 "&&" {return ANDB;}
 "||" {return ORB;}
 "!" {return NEGB;}
+
+"true" {yylval.boolValue = true; return BOOLVAL;}
+"false" {yylval.boolValue = false; return BOOLVAL;}
 [a-zA-Z_][_a-zA-Z0-9]* {yylval.stringValue = strdup(yytext); return ID;}
 [1-9][0-9]*\.[0-9]* {yylval.floatValue = atof(yytext); return FLOATVAL;}
 [1-9][0-9]* {yylval.intValue = atol(yytext); return INTVAL;}
+\"*\" {yylval.stringValue = strdup(yytext); return STRINGVAL;}
+\'.\' {yylval.charValue = yytext[0]; return CHARVAL;}
 [ \t] ;
 \n {yylineno++;}
 . {return yytext[0];}

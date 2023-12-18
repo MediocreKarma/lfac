@@ -11,6 +11,7 @@ void yyerror(const char * s);
 class IdList ids;
 %}
 %union {
+     char* idValue;
      char* stringValue;
      long long intValue;
      double floatValue;
@@ -19,65 +20,73 @@ class IdList ids;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN ENDMAIN
 %token SEP ASSIGN
-%token WHILE FOR IF
+%token INCREMENT DECREMENT
+%token WHILE FOR IF ELSE DO RETURN
 %token CLASS CONST ARRAY FN
-%token<stringValue> TYPE ID
+%token<idValue> TYPE ID
+%token<stringValue> STRINGVAL
 %token<intValue> INTVAL
 %token<floatValue> FLOATVAL
 %token<boolValue> BOOLVAL
+%token<charValue> CHARVAL;
 
-%left PLUS MINUS DIV MUL ANDB ORB NEGB
+%left PLUS MINUS DIV MUL ANDB ORB POW
 %nonassoc LEQ GEQ LT GT EQ NEQ
+%right NEGB
 
-%start progr
+%start start_program
 %%
 
-/*nota: momentan niciunul din blocuri nu poate fi gol deci trebe rezolvata si asta*/
-progr: CLASSES classes_block ENDCLASSES GLOBALS globals_block ENDGLOBALS FUNCTIONS functions_block ENDFUNCTIONS MAIN block ENDMAIN {printf("The programme is correct!\n");}
+start_program : progr { printf("The code syntax is correct.\n");}
+
+progr: classes_section globals_section functions_section MAIN block ENDMAIN
      ;
 
-classes_block : class_definition
-              | classes_block class_definition
-              ;
+classes_section: CLASSES classes_block ENDCLASSES
+               | // eps
+               ;
+          
+globals_section: GLOBALS globals_block ENDGLOBALS
+               | // eps
+               ;
+
+functions_section: FUNCTIONS functions_block ENDFUNCTIONS
+                 | // eps
+                 ;
+
+classes_block: classes_block class_definition
+             | // eps
+             ;
 
 class_definition: CLASS ID '{' {/*enter class scope: toate declararile si asa se vor face in contextul clasei mele*/} class_members {/*exit class scope*/} '}';
 
-class_members: class_member SEP
-               | class_members class_member SEP
+class_members: class_members class_member SEP
+             | // eps
+             ;
 
-class_member : decl
-               | function_definition
+class_member: decl
+            | function_definition
+            ;
+
+functions_block: functions_block function_definition
+               | // eps
                ;
-
-functions_block :  function_definition
-                | functions_block function_definition;
 
 function_definition: FN TYPE ID '(' list_param ')' '{' statement_list '}' 
 
-globals_block :  decl SEP
-	      | decl SEP globals_block
-	      ;
+globals_block: decl SEP globals_block
+             | // eps
+	        ;
       
 
 block : statement_list 
      ;
 
-/* cand ne dam seama ce facem cu tipurile, pe aici trebe construit AST-ul */
-expression : INTVAL {}
-           | BOOLVAL {}
-           | FLOATVAL {}
-           /*plus absolut toate celelalte valori. function calls, variabile, etc*/
-           | ID {} /* variabila efectiva*/
-           | ID '(' call_list ')' {}  /* function calls */
-           | ID '(' ')' {}
-           /* si pe aici trb adaugate alea cu operatorii, + - < > etc*/
-           ;
-
-decl       :  TYPE ID { if(!ids.existsVar($2)) {
+decl       : TYPE ID { if(!ids.existsVar($2)) {
                           ids.addVar($1,$2);
                      }
                     }
-           | CONST ID ASSIGN expression {}
+           | CONST TYPE ID ASSIGN expression {}
            | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {}
            | FN TYPE ID '(' list_param ')' /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
            | FN TYPE ID '(' ')' {}
@@ -108,6 +117,23 @@ statement: assignment
 
 call_list : expression
            | call_list ',' expression
+           ;
+
+/* cand ne dam seama ce facem cu tipurile, pe aici trebe construit AST-ul */
+expression : INTVAL {}
+           | BOOLVAL {}
+           | FLOATVAL {}
+           | STRINGVAL {}
+           | '(' expression ')'
+           | expression PLUS expression
+           | expression MINUS expression
+           | expression MUL expression
+           | expression POW expression
+           /*plus absolut toate celelalte valori. function calls, variabile, etc*/
+           | ID {} /* variabila efectiva*/
+           | ID '(' call_list ')' {}  /* function calls */
+           | ID '(' ')' {}
+           /* si pe aici trb adaugate alea cu operatorii, + - < > etc*/
            ;
 
 %%
