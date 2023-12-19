@@ -2,10 +2,16 @@ GLOBALS
 int x!!
 int y!!
 string str!!
+bool b!!
 ENDGLOBALS
 
 MAIN
 x := 6 + 5!!
-y := (x - 3) + 15 / 3!!
+
+y := (x - 3 )/ 15 + 3!!
+
+b := `(true) !!
+b := `(2 < b) !!
+
 str := 5!!
 ENDMAIN

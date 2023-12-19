@@ -20,6 +20,8 @@ protected:
     Type& operator = (const Type&);
     Type& operator = (Type&&);
 
+    // ne trebuie un operator == , cred
+
 };
 
 
