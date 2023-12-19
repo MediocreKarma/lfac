@@ -53,8 +53,8 @@
 [a-zA-Z_][_a-zA-Z0-9]* {yylval.stringValue = strdup(yytext); return ID;}
 [1-9][0-9]*\.[0-9]* {yylval.floatValue = atof(yytext); return FLOATVAL;}
 [1-9][0-9]* {yylval.intValue = atol(yytext); return INTVAL;}
-\"*\" {yylval.stringValue = strdup(yytext); return STRINGVAL;}
-\'.\' {yylval.charValue = yytext[0]; return CHARVAL;}
+\".*\" { yylval.stringValue = strdup(yytext); return STRINGVAL;}
+\'.\' {yylval.charValue = yytext[1]; return CHARVAL;}
 [ \t] ;
 \n {yylineno++;}
 . {return yytext[0];}

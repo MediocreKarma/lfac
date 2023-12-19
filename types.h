@@ -4,36 +4,13 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include <unordered_map>
 
-class Type {
-protected:
-    std::string scope;
-    bool is_init;
-    bool is_const;
-    // 0 if non array-type
-    size_t array_size;
-
-    Type(size_t array_size = 0);
-
-    Type(const Type&);
-    Type(Type&&);
-    Type& operator = (const Type&);
-    Type& operator = (Type&&);
-
-    // ne trebuie un operator == , cred
-
+enum Type {
+    INT, FLOAT, CHAR, STRING, BOOL, CUSTOM
 };
 
-
-class BuiltInType : Type {
-    std::variant<int, float, char, bool, std::string> var;
-    BuiltInType(const std::variant<int, float, char, bool, std::string>& var, size_t array_size = 0);
-};
-
-class CustomType : Type {
-    std::string generatedScope;
-    std::vector<Type*> variables;
-};
+Type typeFromString(const std::string& str);
 
 enum class BinaryOp {
     PLUS,
@@ -52,7 +29,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    NEGB,
+    NEGB
 
 };
 

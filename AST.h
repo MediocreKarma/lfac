@@ -7,20 +7,20 @@
 
 class AST {
 public:
-    // math expr
-    AST(AST& left, BinaryOp op, AST& right);
+    // expr 
+    AST(const AST& left, BinaryOp op, const AST& right);
+    AST(UnaryOp op, const AST& left);
 
-    // cmp expr
-    AST(UnaryOp op, AST& left);
+    AST(int i);
+    AST(float f);
+    AST(std::string s);
+    AST(char c);
+    AST(bool b);
 
-    // integer
-    AST(int num);
-
-    // float
-    AST(float num);
-
-    // assignment
-    AST(SymbolData& symbol, std::string data);
+    // assignment as an operator?
+    AST(SymbolData& symbol, const AST& left);
+    
+    
 
 
 

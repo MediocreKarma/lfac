@@ -3,6 +3,7 @@ int x!!
 int y!!
 string str!!
 bool b!!
+char c!!
 ENDGLOBALS
 
 MAIN
@@ -10,8 +11,8 @@ x := 6 + 5!!
 
 y := (x - 3 )/ 15 + 3!!
 
-b := `(true) !!
-b := `(2 < b) !!
+b := true !!
 
-str := 5!!
+str := "aa"!!
+c := 'x'!!
 ENDMAIN
