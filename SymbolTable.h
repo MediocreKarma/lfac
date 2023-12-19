@@ -1,11 +1,18 @@
+#ifndef _SYMBOL_TABLE__
+#define _SYMBOL_TABLE__
+
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <string>
+#include <optional>
+#include "types.h"
+#include <variant>
 
 struct SymbolData {
     // dumnezeu stie
+    
 
-    size_t array_size;
 };
 
 
@@ -16,3 +23,5 @@ class SymbolTable {
     // ar trebui sa ne gandim apoi cum definim un scope
     std::unordered_map<std::string, SymbolData> m_table;
 };
+
+#endif

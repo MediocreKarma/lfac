@@ -5,6 +5,7 @@ string str!!
 ENDGLOBALS
 
 MAIN
-x := 6!!
-y := x!!
+x := 6 + 5!!
+y := (x - 3) + 15 / 3!!
+str := "string"!!
 ENDMAIN

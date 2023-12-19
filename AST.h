@@ -1,3 +1,6 @@
+#ifndef _AST__
+#define _AST__
+
 #include <iostream>
 #include "types.h"
 #include "SymbolTable.h"
@@ -5,10 +8,10 @@
 class AST {
 public:
     // math expr
-    AST(AST& left, OP op, AST& right);
+    AST(AST& left, BinaryOp op, AST& right);
 
     // cmp expr
-    AST(AST& left, Comparison cmp, AST& right);
+    AST(UnaryOp op, AST& left);
 
     // integer
     AST(int num);
@@ -17,11 +20,13 @@ public:
     AST(float num);
 
     // assignment
-    AST(SymbolData* symbol, )
+    AST(SymbolData& symbol, std::string data);
 
 
 
 
 private:
 
-}
+};
+
+#endif

@@ -17,11 +17,3 @@ class IdList {
     void printVars();
     ~IdList();
 };
-
-/*
-
-std::cout << (x += 3) + (x += 5);
-
-*/
-
-
