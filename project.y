@@ -89,6 +89,7 @@ block : statement_list
 identifier : ID
           | ID '.' ID {/*class member*/}
           | ID '[' INTVAL ']' {/* array member*/}
+          ;
 
 decl : TYPE ID { if(!ids.existsVar($2)) {
                     ids.addVar($1,$2);
@@ -148,7 +149,7 @@ arith_expr: '(' arith_expr ')'
           | arith_expr POW arith_expr
           | INTVAL {}
           | FLOATVAL {}
-          | identifier {/* add new AST node with the value of this ONLY IF value is arithmetic*/}
+          | identifier {/* add new AST node with the value of this if value is arithmetic or bool...??????? problema e ca trebuie verificat cumva la final ca totul e ok, daca aici trebuie pur si simplu sa presupun ca e ok*/}
           | ID '(' call_list ')' {}  /* function calls */
           | ID '(' ')' {}
           ;
@@ -174,7 +175,7 @@ bool_expr : '`' '(' bool_expr ')' { /*return AST with new node... whatever*/ }
 
 %%
 void yyerror(const char * s){
-     printf("error: %s at line: %d\n",s,yylineno);
+     printf("Error: %s at line: %d\n",s,yylineno);
 }
 
 int main(int argc, char** argv){
