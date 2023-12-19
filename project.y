@@ -107,10 +107,18 @@ statement_list :  statement SEP
                | statement SEP statement_list
                ;
 
-statement: assignment
-         | ID '(' call_list ')'
-         | WHILE '(' ID ')' '{' statement '}'
-         ;
+statement : assignment
+          // id call_list ?
+          | ID '(' call_list ')'
+          // pareri syntaxa pitonica? daca obligam '{}' atunci nu ne trebuie delimitator
+          | IF bool_expr ':' block
+          | ELSE ':' 
+          | WHILE bool_expr ':' block
+          | FOR assignment SEP bool_expr SEP assignment ':' block
+          // niste mici conflicte intre do while si while, 
+          // uncomment at your own risk
+          // | DO ':' block WHILE bool_expr 
+          ;
 
 assignment: ID ASSIGN expr {}
           ;

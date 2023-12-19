@@ -7,5 +7,5 @@ ENDGLOBALS
 MAIN
 x := 6 + 5!!
 y := (x - 3) + 15 / 3!!
-str := "string"!!
+str := 5!!
 ENDMAIN
