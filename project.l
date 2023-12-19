@@ -9,6 +9,7 @@
 "const" {return CONST;}
 "class" {return CLASS;}
 "array" {return ARRAY;}
+"this" {return THIS;}
 "fn" {return FN;}
 
 "CLASSES" {return CLASSES;}
@@ -19,6 +20,9 @@
 "ENDFUNCTIONS" {return ENDFUNCTIONS;}
 "MAIN" {return MAIN;}
 "ENDMAIN" {return ENDMAIN;}
+
+"Eval" {return EVAL;}
+"TypeOf" {return TYPEOF;}
 
 ":=" {return ASSIGN;}
 "!!" {return SEP;}

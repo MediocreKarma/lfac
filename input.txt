@@ -1,3 +1,15 @@
+CLASSES
+
+class My {
+    int xy!!
+    int xx!!
+    fn int scopeFunction(int x) {
+       string new!!
+    }!!
+}
+
+ENDCLASSES
+
 GLOBALS
 int x!!
 int y!!

@@ -10,8 +10,6 @@ extern int yylex();
 void yyerror(const char * s);
 
 class SymbolTable symbolTable;
-
-class BoolClass;
 %}
 %union {
      char* idValue;
@@ -23,8 +21,8 @@ class BoolClass;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN ENDMAIN
 %token SEP ASSIGN INCREMENT DECREMENT
-%token WHILE FOR IF ELSE DO RETURN
-%token CLASS CONST ARRAY FN
+%token WHILE FOR IF ELSE DO RETURN EVAL TYPEOF
+%token CLASS CONST ARRAY FN THIS
 %token<idValue> TYPE ID
 %token<stringValue> STRINGVAL
 %token<intValue> INTVAL
@@ -62,12 +60,14 @@ classes_block: classes_block class_definition
              | // eps
              ;
 
-class_definition: CLASS ID '{' {/*enter class scope: toate declararile si asa se vor face in contextul clasei mele*/} class_members {/*exit class scope*/} '}';
+class_definition: CLASS ID '{' { symbolTable.enterScope($2); } class_members '}' {symbolTable.exitScope();} ;
+
 
 class_members: class_members class_member SEP
              | // eps
              ;
 
+// trebuie ca intr-o functie sa putem avea... this. Sa putem avea pointerul this. sau gen nu stiu. sa putem folosi keywordul this. Dar nu stiu cum exprim asta..
 class_member: decl
             | function_definition
             ;
@@ -76,7 +76,8 @@ functions_block: functions_block function_definition
                | // eps
                ;
 
-function_definition: FN TYPE ID '(' list_param ')' '{' statement_list '}' 
+function_definition: FN TYPE ID '(' list_param ')' '{' {symbolTable.enterScope($3);} statement_list '}' {symbolTable.exitScope();}
+                    ;
 
 globals_block: decl SEP globals_block
              | // eps
@@ -98,7 +99,7 @@ decl : TYPE ID {
                symbolTable.add(SymbolData($2, typeFromString($1), SymbolData::Variable));
           }
      }
-     | CONST TYPE ID ASSIGN expr {}                                                                                     // amc vrem
+     | CONST TYPE ID ASSIGN expr {}                                                                                     // amc vrem -- bine...
      | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {}
      | FN TYPE ID '(' list_param ')' /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
      | FN TYPE ID '(' ')' {}
@@ -118,17 +119,22 @@ statement_list : statement SEP
                ;
 
 statement : assignment
-          // id call_list ?
-          | ID '(' call_list ')'
+          // TREBUIE sa putem avea declarari ca statementuri in functii
+          | decl {}
+          // id call_list ? -- gen functii. function calls
+          | ID '(' call_list ')' {}
           // pareri syntaxa pitonica? daca obligam '{}' atunci nu ne trebuie delimitator
           // -- daca nu ne incurca in alte parti, ok
-          | IF expr ':' block
-          | ELSE ':' 
-          | WHILE expr ':' block
-          | FOR assignment SEP expr SEP assignment ':' block
+          // stai unde vrei sa obligi {}?
+          | IF expr { /* if type of expression IS NOT bool, then raise semantic error. ne trebuie un %type pentru expr... dar nu stiu momentan ce, si depinde de daca ne cere intr-adevar Doar Expresii Aritmetice Si Booleane. daca nu... it all becomes ASTs*/ }':'  { /* add randomized scope name */} block {/*symbolTable.exitScope();*/}
+          | ELSE ':' {} // de ce e else ul asta separat...
+          | WHILE expr { /* if type of expression IS NOT bool, then raise semantic error*/ }':' { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
+          | FOR assignment SEP expr {/* if type of expression IS NOT bool, then raise semantic error*/ } SEP assignment ':'  { /* add randomized scope name */} block  { /*symbolTable.exitScope();*/}
           // niste mici conflicte intre do while si while, 
           // uncomment at your own risk
-          // | DO ':' block WHILE bool_expr 
+          // | DO ':' block WHILE expr 
+          | EVAL '(' expr ')' {/*print ceva ceva*/}
+          | TYPEOF '(' expr ')' {}
           ;
 
 assignment: identifier ASSIGN expr {/*check if value of AST is same as... etc*/}
@@ -139,28 +145,26 @@ call_list : expr
           | call_list ',' expr
           ;
 
-//value of arith_expr should probably be an AST
 expr : '(' expr ')'
-     | expr PLUS  expr /* trebuie sa se verifice daca sunt ambele inturi sau ambele float-uri. chestii de genul*/
-     | expr MINUS expr
-     | expr  MUL  expr
-     | expr  DIV  expr
-     | expr  POW  expr
-     | expr ANDB  expr
-     | expr  ORB  expr
-     | expr  EQ   expr {/*check if types of ASTs are exactly the same*/}
-     | expr  NEQ  expr
-     |      NEGB  expr
-     // BOOLVAL 
-     | expr  LT   expr {/* in acest caz stim efectiv ca astea s de tipuri ok, ca s-a verificat deja la nivel de arith_expr*/}
-     | expr  LEQ  expr
-     | expr  GT   expr
-     | expr  GEQ  expr
-     | INTVAL { std::cout << "Int: " << $1 << std::endl; }
-     | FLOATVAL { std::cout << "Float: " << $1 << std::endl; }
-     | BOOLVAL { std::cout << "Bool: " << $1 << std::endl; }
-     | STRINGVAL { std::cout << "String: " << $1 << std::endl; }
-     | CHARVAL { std::cout << "Char: " << $1 << std::endl; }
+     | expr PLUS  expr {/* general todo: check if types are The Same, then do the operation and return the needed node*/}
+     | expr MINUS expr {}
+     | expr  MUL  expr {}
+     | expr  DIV  expr {}
+     | expr  POW  expr {}
+     | expr ANDB  expr {}
+     | expr  ORB  expr {}
+     | expr  EQ   expr {}
+     | expr  NEQ  expr {}
+     |      NEGB  expr {}
+     | expr  LT   expr {}
+     | expr  LEQ  expr {}
+     | expr  GT   expr {}
+     | expr  GEQ  expr {}
+     | INTVAL { std::cout << "Int Literal: " << $1 << std::endl; }
+     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; }
+     | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; }
+     | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; }
+     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; }
      | identifier {/* add new AST no matter what, any type is valid */}
      | ID '(' call_list ')' {}  /* function calls */
      | ID '(' ')' {}
