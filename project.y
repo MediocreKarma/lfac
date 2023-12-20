@@ -19,7 +19,7 @@ class SymbolTable symbolTable;
      bool boolValue;
      char charValue;
 }
-%token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN ENDMAIN
+%token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
 %token SEP ASSIGN INCREMENT DECREMENT
 %token WHILE FOR IF ELSE DO RETURN EVAL TYPEOF
 %token CLASS CONST ARRAY FN THIS
@@ -41,7 +41,7 @@ class SymbolTable symbolTable;
 
 start_program : progr { cout << "The code syntax is correct.\n";}
 
-progr: classes_section globals_section functions_section MAIN statement_list ENDMAIN
+progr: classes_section globals_section functions_section MAIN block
      ;
 
 classes_section: CLASSES classes_block ENDCLASSES

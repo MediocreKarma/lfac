@@ -18,14 +18,13 @@
 "ENDGLOBALS" {return ENDGLOBALS;}
 "FUNCTIONS" {return FUNCTIONS;}
 "ENDFUNCTIONS" {return ENDFUNCTIONS;}
-"MAIN" {return MAIN;}
-"ENDMAIN" {return ENDMAIN;}
+"fn int main()" {return MAIN;}
 
 "Eval" {return EVAL;}
 "TypeOf" {return TYPEOF;}
 
 ":=" {return ASSIGN;}
-!!+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
+(!!)+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
 
 "if" {return IF;}
 "else" {return ELSE;}

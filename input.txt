@@ -16,38 +16,48 @@ int x!!
 int y!!
 
 
-array char c[10]!!!!!
+array char c[10]!!!!
 
-class My mine!!!!!!!!!!!
+class My mine!!!!!!!!!!
 
 string str!!
 bool b!!
-const char c := 'a'!!!!!
+const char c := 'a'!!!!
 ENDGLOBALS
 
-MAIN
-x := 6 + 5
-!!
+fn int main() { 
+    x := 6 + 5
+    !!
 
-c[2] := 5!!
-c := someVariableThatDoesntExistYet!!
+    c[2] := 5!!
+    c := someVariableThatDoesntExistYet!!
 
-y := (x - 3 )/ 15 + 3!!
+    y := (x - 3 )/ 15 + 3!!
 
-b := true !!!!
+    b := true !!!!
 
-str := "aa"!!!!!!
-class My yours!!
+    int test_test!!
+    test_test := 1!!
 
-randomFunctionThatDoesntExistYet(a, b, c)!!!
+    str := "aa"!!!!!!
+    class My yours!!
 
-for x := 5 !! x < 23 !! x := x + 1 : {
-    Eval(2 + 5)!!
-}!!
+    randomFunctionThatDoesntExistYet(a, b, c)!!
 
-while x < 25 : {
-    Typeof(7 < 4) !!
-}!!
+    for x := 5 !! x < 23 !! x := x + 1 : {
+        Eval(2 + 5)!!
+    }!!
 
-c := 'x'!!
-ENDMAIN
+    while x < 25 : {
+        Typeof(7 < 4) !!
+    }!!
+
+    c := 'x'!!
+
+    if (b) : {
+        Eval(10 + 15)!!
+    }
+    else : {
+        Eval(1 + 2)!!
+    }!!
+}
