@@ -41,51 +41,52 @@ class SymbolTable symbolTable;
 
 start_program : progr { cout << "The code syntax is correct.\n";}
 
-progr: classes_section globals_section functions_section MAIN block ENDMAIN
+progr: classes_section globals_section functions_section MAIN statement_list ENDMAIN
      ;
 
 classes_section: CLASSES classes_block ENDCLASSES
-               | // eps
+               | /* epsilon */
                ;
           
 globals_section: GLOBALS globals_block ENDGLOBALS
-               | // eps
+               | /* epsilon */
                ;
 
 functions_section: FUNCTIONS functions_block ENDFUNCTIONS
-                 | // eps
+                 | /* epsilon */
                  ;
 
 classes_block: classes_block class_definition
-             | // eps
+             | /* epsilon */
              ;
 
 class_definition: CLASS ID '{' { symbolTable.enterScope($2); } class_members '}' {symbolTable.exitScope();} ;
 
 
-class_members: class_members class_member SEP
-             | // eps
+class_members: class_member SEP class_members
+             | /* epsilon */
              ;
 
-// trebuie ca intr-o functie sa putem avea... this. Sa putem avea pointerul this. sau gen nu stiu. sa putem folosi keywordul this. Dar nu stiu cum exprim asta..
+// trebuie ca intr-o functie sa putem avea... this. Sa putem avea pointerul this. sau gen nu stiu. sa putem folosi keywordul this. Dar nu stiu cum exprim asta...
+
 class_member: decl
             | function_definition
             ;
 
-functions_block: functions_block function_definition
-               | // eps
+functions_block: function_definition functions_block
+               | /* epsilon */
                ;
 
 function_definition: FN TYPE ID '(' list_param ')' '{' {symbolTable.enterScope($3);} statement_list '}' {symbolTable.exitScope();}
                     ;
 
 globals_block: decl SEP globals_block
-             | // eps
+             | /* epsilon */
 	        ;
       
 
-// useless ?
-block : statement_list 
+// useless ? -- poate un block ar putea sa fie un statement-list cu acolade in jurul lui
+block : '{' statement_list '}' 
      ;
 
 //what can be assigned to?
@@ -98,15 +99,27 @@ decl : TYPE ID {
           if(!symbolTable.contains($2)) {
                symbolTable.add(SymbolData($2, typeFromString($1), SymbolData::Variable));
           }
+          else {
+               yyerror("Symbol already exists!");
+          }
      }
-     | CONST TYPE ID ASSIGN expr {}                                                                                     // amc vrem -- bine...
+     | ARRAY TYPE ID '[' INTVAL ']' {
+     }
+     | CONST TYPE ID ASSIGN expr {
+          if(!symbolTable.contains($3)) {
+               symbolTable.add(SymbolData($3, typeFromString($2), SymbolData::Constant));
+          }
+          else {
+               yyerror("Symbol already exists!");
+          }
+     }                                                                                                                          // amc vrem -- bine...
      | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {}
      | FN TYPE ID '(' list_param ')' /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
      | FN TYPE ID '(' ')' {}
      ;
 
-list_param : param
-            | list_param ','  param 
+list_param :  param
+            | param ','  list_param 
             ;
             
 param : TYPE ID
@@ -119,20 +132,26 @@ statement_list : statement SEP
                ;
 
 statement : assignment
-          // TREBUIE sa putem avea declarari ca statementuri in functii
+
+          // trebuie sa putem avea declarari ca statementuri in functii ca sa putem avea functii in diverse scope-uri
           | decl {}
-          // id call_list ? -- gen functii. function calls
+
+          // functii. function calls
           | ID '(' call_list ')' {}
+
           // pareri syntaxa pitonica? daca obligam '{}' atunci nu ne trebuie delimitator
           // -- daca nu ne incurca in alte parti, ok
-          // stai unde vrei sa obligi {}?
-          | IF expr { /* if type of expression IS NOT bool, then raise semantic error. ne trebuie un %type pentru expr... dar nu stiu momentan ce, si depinde de daca ne cere intr-adevar Doar Expresii Aritmetice Si Booleane. daca nu... it all becomes ASTs*/ }':'  { /* add randomized scope name */} block {/*symbolTable.exitScope();*/}
-          | ELSE ':' {} // de ce e else ul asta separat...
-          | WHILE expr { /* if type of expression IS NOT bool, then raise semantic error*/ }':' { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
-          | FOR assignment SEP expr {/* if type of expression IS NOT bool, then raise semantic error*/ } SEP assignment ':'  { /* add randomized scope name */} block  { /*symbolTable.exitScope();*/}
+          // -- momentan am sa pun '{}'-uri in jurul astora, temporar, cat sa mearga pe exemplele din input.txt. le vom muta in alta parte
+
+          | IF expr { /* -- if type of expression IS NOT bool, then raise semantic error. ne trebuie un %type pentru expr... dar nu stiu momentan ce, si depinde de daca ne cere intr-adevar Doar Expresii Aritmetice Si Booleane. daca nu... it all becomes ASTs*/ }':'  { /* add randomized scope name */} block {/*symbolTable.exitScope();*/} ELSE ':'  block {} 
+
+          | WHILE expr { /* -- if type of expression IS NOT bool, then raise semantic error*/ }':' { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
+
+          | FOR assignment SEP expr {/* -- if type of expression IS NOT bool, then raise semantic error*/ } SEP assignment ':'  { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
+          
           // niste mici conflicte intre do while si while, 
           // uncomment at your own risk
-          // | DO ':' block WHILE expr 
+          | DO ':' block WHILE expr
           | EVAL '(' expr ')' {/*print ceva ceva*/}
           | TYPEOF '(' expr ')' {}
           ;
@@ -141,10 +160,13 @@ assignment: identifier ASSIGN expr {/*check if value of AST is same as... etc*/}
           ;
         
 
-call_list : expr
-          | call_list ',' expr
+// sper sa nu fie ceva gresit aici (vreau sa pot avea ori f(a), ori f(a, b, c), ori f()... )
+call_list : expr ',' {/**/} call_list
+          | expr
+          | /* epsilon */
           ;
 
+// e ok sa fie o singura expresie pentru toate tipurile de expresii?
 expr : '(' expr ')'
      | expr PLUS  expr {/* general todo: check if types are The Same, then do the operation and return the needed node*/}
      | expr MINUS expr {}
@@ -167,17 +189,27 @@ expr : '(' expr ')'
      | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; }
      | identifier {/* add new AST no matter what, any type is valid */}
      | ID '(' call_list ')' {}  /* function calls */
-     | ID '(' ')' {}
      ;
+
+// cred ca inclusiv literalilor ar trebui sa le dam SymbolData
+// si sa specificam 
+/* literal : INTVAL | CHARVAL | BOOLVAL | STRINGVAL | FLOATVAL;
+
+value : literal | identifier;
+
+initializer_list : '{' identifier_list '}'
+
+identifier_list : value |  value SEP identifier_list */
 
 %%
 void yyerror(const char * s){
      printf("Error: %s at line: %d\n",s,yylineno);
+     exit(1);
 }
 
 int main(int argc, char** argv){
      yyin=fopen(argv[1],"r");
      yyparse();
-     std::cout << "Variables:" << std::endl;
+     std::cout << "Basetype, non-const, non-array, non-class variables:" << std::endl;
      symbolTable.print(std::cout);
 } 

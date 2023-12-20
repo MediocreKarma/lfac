@@ -25,7 +25,7 @@
 "TypeOf" {return TYPEOF;}
 
 ":=" {return ASSIGN;}
-"!!" {return SEP;}
+!!+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
 
 "if" {return IF;}
 "else" {return ELSE;}

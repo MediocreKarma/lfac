@@ -17,6 +17,7 @@
 namespace Scope {
     static const char* DELIM = "/";
     std::string scopeToString(const std::vector<std::string>&);
+    std::string scopeWithNameToString(const std::string& scope, const std::string& name);
 }
 
 class SymbolData {
@@ -79,9 +80,13 @@ public:
     void enterScope(const std::string&);
     void exitScope();
 private:
-
+    // cat de ridicol ar fi sa fie mai degraba unordered_map<string, unordered_map<string, SymbolData>>? cheia1 ar fi numele variabilei, cheia2 ar fi scope-ul variabilei reprezentat ca un string
+    // as face asta da nuj cat de costisitor e
+    // also se poate face si unordered_map<string, vector<string, SymbolData>> (cat de des declari pana la urma "x" in scope-uri diferite?) dar mna. Cum Crezi
     std::unordered_map<std::string, SymbolData> m_table;
 
+    // si trebuie sa tinem undeva si clasele definite so far
+    
     std::vector<std::string> _currentScopeHierarchy;
 };
 

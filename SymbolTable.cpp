@@ -9,6 +9,10 @@ std::string Scope::scopeToString(const std::vector<std::string>& scope) {
     return result.str();
 }
 
+std::string Scope::scopeWithNameToString(const std::string& scope, const std::string& name) {
+    return scope + name + "/";
+}
+
 Type typeFromString(const std::string& str) {
     // :)
     return std::unordered_map<std::string, Type> {
@@ -179,17 +183,16 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
 
 SymbolTable& SymbolTable::add(const SymbolData& data) {
     // current scope
-    // todo: actually do scopes here...  also for fxns and stuff
-    // also todo: standardize adding something to a scope string with helper fxns
-    m_table.emplace(currentScope() + data.name() + "/", data);
-    std::cout << "Adding variable: " << currentScope() + "_var_" + data.name() + "\n";
+    // todo: add more types of scopes here
+    // -- am scos si _var_ pentru nu i ca si cum vreau sa pot sa am de exemplu o functie si o variabila si un constant cu acelasi nume in acelasi scope.
+    // vreau sa fie toate Simboluri non-re-declarabile
+    m_table.emplace(Scope::scopeWithNameToString(currentScope(), data.name()), data);
+    std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), data.name()) + "\n";
     return *this;
 }
 
 bool SymbolTable::contains(const std::string& name) {
-    // cred ca aici vrem defapt sa dam direct un string care sa reprezinte scope-ul. Exista Variabila in scope-ul curent?
-    // saaaaau un vector<string> care sa mi fie defapt ierarhia... nu stiu
-    return m_table.contains(name);
+    return m_table.contains(Scope::scopeWithNameToString(currentScope(), name));
 }
 
 void SymbolTable::print(std::ostream& out) {
