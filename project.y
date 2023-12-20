@@ -78,6 +78,7 @@ functions_block: function_definition functions_block
                ;
 
 function_definition: FN TYPE ID '(' list_param ')' '{' {symbolTable.enterScope($3);} statement_list '}' {symbolTable.exitScope();}
+                    | FN CLASS ID ID'(' list_param ')' '{' {symbolTable.enterScope($4);} statement_list '}' {symbolTable.exitScope();}
                     ;
 
 globals_block: decl SEP globals_block
@@ -139,21 +140,15 @@ statement : assignment
           // functii. function calls
           | ID '(' call_list ')' {}
 
-          // pareri syntaxa pitonica? daca obligam '{}' atunci nu ne trebuie delimitator
-          // -- daca nu ne incurca in alte parti, ok
-          // -- momentan am sa pun '{}'-uri in jurul astora, temporar, cat sa mearga pe exemplele din input.txt. le vom muta in alta parte
-
           | IF expr { /* -- if type of expression IS NOT bool, then raise semantic error. ne trebuie un %type pentru expr... dar nu stiu momentan ce, si depinde de daca ne cere intr-adevar Doar Expresii Aritmetice Si Booleane. daca nu... it all becomes ASTs*/ }':'  { /* add randomized scope name */} block {/*symbolTable.exitScope();*/} ELSE ':'  block {} 
 
           | WHILE expr { /* -- if type of expression IS NOT bool, then raise semantic error*/ }':' { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
 
           | FOR assignment SEP expr {/* -- if type of expression IS NOT bool, then raise semantic error*/ } SEP assignment ':'  { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
-          
-          // niste mici conflicte intre do while si while, 
-          // uncomment at your own risk
+
           | DO ':' block WHILE expr
-          | EVAL '(' expr ')' {/*print ceva ceva*/}
-          | TYPEOF '(' expr ')' {}
+          | EVAL '(' expr ')' {std::cout << "In Eval\n";}
+          | TYPEOF '(' expr ')' {std::cout << "In TypeOf\n";}
           ;
 
 assignment: identifier ASSIGN expr {/*check if value of AST is same as... etc*/}

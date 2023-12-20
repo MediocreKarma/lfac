@@ -25,6 +25,18 @@ bool b!!
 const char c := 'a'!!!!
 ENDGLOBALS
 
+FUNCTIONS
+
+fn int function(int randParam, char randParam2) {
+    int newVar!!!!
+}
+
+fn class My function2(string randParam, class My param2) {
+    char newVar2!!!!!!
+}
+
+ENDFUNCTIONS
+
 fn int main() { 
     x := 6 + 5
     !!
@@ -49,15 +61,17 @@ fn int main() {
     }!!
 
     while x < 25 : {
-        Typeof(7 < 4) !!
+        TypeOf(7 < 4) !!
     }!!
 
     c := 'x'!!
 
     if (b) : {
         Eval(10 + 15)!!
+        TypeOf(7 < 4) !!
     }
     else : {
         Eval(1 + 2)!!
+        Eval(3 > 5)!!
     }!!
 }
