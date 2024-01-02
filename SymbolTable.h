@@ -18,6 +18,10 @@ namespace Scope {
     static const char* DELIM = "/";
     std::string scopeToString(const std::vector<std::string>&);
     std::string scopeWithNameToString(const std::string& scope, const std::string& name);
+    // verify if access to variable in encompassing scope
+    // is possible in active scope 
+    // i.e. scope is contained by the other scope
+    bool encompassingScope(const std::string& active, const std::string& encompassing); 
 }
 
 class SymbolData {
@@ -37,7 +41,7 @@ public:
         Else /*is the scope of an else part of an if? eu zic ca s separate dar ce i drept nici n-am habar*/
     };
 
-    SymbolData(const std::string& name, Type type, Flag flag);
+    SymbolData(const std::string& name, TypeNms::Type type, Flag flag);
     //SymbolData(std::string&& name, Type type, Flag flag);
     SymbolData(const SymbolData&);
     SymbolData(SymbolData&&);
@@ -54,9 +58,12 @@ public:
 
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
 
+    // cu siguranta astea functioneaza cum trebuie by default
+    friend bool operator == (const SymbolData& a, const SymbolData& b) = default;
+    friend bool operator != (const SymbolData& a, const SymbolData& b) = default;
 private:
     std::string _name;
-    Type type;
+    TypeNms::Type type;
     std::string _scope;
     bool _isInit;
     bool _isConst;

@@ -1,8 +1,10 @@
 %{
 #include <iostream>
 #include <vector>
+#include <string>
+#include "types.h"
 #include "AST.h"
-#include "IdList.h"
+
 extern FILE* yyin;
 extern char* yytext;
 extern int yylineno;
@@ -18,6 +20,7 @@ class SymbolTable symbolTable;
      double floatValue;
      bool boolValue;
      char charValue;
+     class AST* astNode;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
 %token SEP ASSIGN INCREMENT DECREMENT
@@ -29,6 +32,7 @@ class SymbolTable symbolTable;
 %token<floatValue> FLOATVAL
 %token<boolValue> BOOLVAL
 %token<charValue> CHARVAL
+%type<astNode> expr
 
 %left PLUS MINUS DIV MUL ANDB ORB POW
 %left POSTINCR POSTDECR
@@ -39,7 +43,7 @@ class SymbolTable symbolTable;
 %start start_program
 %%
 
-start_program : progr { cout << "The code syntax is correct.\n";}
+start_program : progr { std::cout << "The code syntax is correct.\n";}
 
 progr: classes_section globals_section functions_section MAIN block
      ;
@@ -98,7 +102,7 @@ identifier: ID
 
 decl : TYPE ID { 
           if(!symbolTable.contains($2)) {
-               symbolTable.add(SymbolData($2, typeFromString($1), SymbolData::Variable));
+               symbolTable.add(SymbolData($2, TypeNms::strToType($1), SymbolData::Variable));
           }
           else {
                yyerror("Symbol already exists!");
@@ -108,7 +112,7 @@ decl : TYPE ID {
      }
      | CONST TYPE ID ASSIGN expr {
           if(!symbolTable.contains($3)) {
-               symbolTable.add(SymbolData($3, typeFromString($2), SymbolData::Constant));
+               symbolTable.add(SymbolData($3, TypeNms::strToType($2), SymbolData::Constant));
           }
           else {
                yyerror("Symbol already exists!");
@@ -177,12 +181,12 @@ expr : '(' expr ')'
      | expr  LEQ  expr {}
      | expr  GT   expr {}
      | expr  GEQ  expr {}
-     | INTVAL { std::cout << "Int Literal: " << $1 << std::endl; }
+     | INTVAL { std::cout << "Int Literal: " << $1 << std::endl; $$ = new AST(); }
      | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; }
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; }
-     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; }
-     | identifier {/* add new AST no matter what, any type is valid */}
+     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl;  }
+     | identifier { /* add new AST no matter what, any type is valid */}
      | ID '(' call_list ')' {}  /* function calls */
      ;
 

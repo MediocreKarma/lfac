@@ -1,5 +1,5 @@
 *.yy.c
 *.tab.*
 project
-
+*.json
 .vscode

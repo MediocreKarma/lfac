@@ -1,5 +1,7 @@
 #include "SymbolTable.h"
 
+using namespace TypeNms;
+
 std::string Scope::scopeToString(const std::vector<std::string>& scope) {
     const char* const delim = "/";
     std::ostringstream result;
@@ -13,18 +15,11 @@ std::string Scope::scopeWithNameToString(const std::string& scope, const std::st
     return scope + name + "/";
 }
 
-Type typeFromString(const std::string& str) {
-    // :)
-    return std::unordered_map<std::string, Type> {
-        {"int", INT},
-        {"float", FLOAT},
-        {"char", CHAR},
-        {"string", STRING},
-        {"bool", BOOL},
-    }.at(str);
+bool Scope::encompassingScope(const std::string& active, const std::string& encompassing) {
+    return active.find(encompassing) != std::string::npos;
 }
 
-SymbolData::SymbolData(const std::string& name, const Type t, const Flag f) {
+SymbolData::SymbolData(const std::string& name, const TypeNms::Type t, const Flag f) {
     _name = name;
     type = t;
     _isArray = false;
@@ -154,29 +149,8 @@ std::string SymbolData::scope() const {
 }
 
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
-    std::string outType = "UNDEFINED";
-    switch (sd.type) {
-        case INT:
-            outType = "Int";
-            break;
-        case FLOAT:
-            outType = "Float";
-            break;
-        case CHAR:
-            outType = "Char";
-            break;
-        case STRING:
-            outType = "String";
-            break;
-        case BOOL:
-            outType = "Bool";
-            break;
-        case CUSTOM:
-            outType = "User defined class";
-            break;
-    }
     // momentan atat
-    out << outType << ' ' << sd.name();
+    out << typeToStr(sd.type) << ' ' << sd.name();
     return out;
 }
 
