@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-
 // find better naming? TypeNamespace xd
 namespace TypeNms {
     enum Type {
@@ -17,9 +16,7 @@ namespace TypeNms {
     std::string typeToStr(Type t);
 }
 
-
 namespace Operation {
-
     enum class BinaryOp {
         PLUS,
         MINUS,
@@ -40,8 +37,6 @@ namespace Operation {
         NEGB,
         NEG
     };
-
-
 
     bool booleanOperator(BinaryOp op);
     bool booleanOperator(UnaryOp op);

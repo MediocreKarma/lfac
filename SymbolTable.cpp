@@ -43,7 +43,6 @@ SymbolData::SymbolData(SymbolData&& rhs) :
     _isConst(rhs._isConst), _isFunc(rhs._isFunc), value(std::move(rhs.value)) {}
 
 SymbolData& SymbolData::operator = (const SymbolData& rhs) {
-    // intrebare mai de necunoscatori: astea nu se faceau automat?
     _name = rhs._name;
     type = rhs.type;
     _scope = rhs._scope;
@@ -69,7 +68,7 @@ SymbolData& SymbolData::operator = (SymbolData&& rhs) {
 
 SymbolData& SymbolData::assign(const Value& _value) {
     if (!assignable(_value)) { 
-        throw std::invalid_argument("invalid dar de ce? throw in assignable?");
+        throw std::invalid_argument("Value unassignable");
     }
     else {
         _isInit = true;
@@ -80,8 +79,6 @@ SymbolData& SymbolData::assign(const Value& _value) {
 }
 
 bool SymbolData::assignable(const Value& _value) {
-    // nici nu stiu ce vrea sa exprime aceasta functie... nu ma ating de ea momentan
-    // presupun ca vrei sa vezi daca poti sa scoti valoarea dintr un id... sau ceva
     switch (type) {
         case INT:
             return std::holds_alternative<int>(_value);
@@ -154,7 +151,6 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     return out;
 }
 
-
 SymbolTable& SymbolTable::add(const SymbolData& data) {
     // current scope
     // todo: add more types of scopes here
@@ -177,6 +173,23 @@ void SymbolTable::print(std::ostream& out) {
 
 std::string SymbolTable::currentScope() {
     return Scope::scopeToString(_currentScopeHierarchy);
+}
+
+std::string SymbolTable::randomizedScopeToStr(RandomizedScopes scope) {
+    switch(scope) {
+        case For : return "FOR";
+        case While: return "WHILE";
+        case DoWhile: return "DOWHILE";
+        case If: return "IF";
+        case Else: return "ELSE";
+        default: return "UNKNOWN_SCOPE";
+    }
+}
+
+void SymbolTable::enterScope(RandomizedScopes scope) {
+    std::string result =  "_" + randomizedScopeToStr(scope) + "_" + std::to_string(_randomizedScopeCounts[scope]++);
+    _currentScopeHierarchy.push_back(result);
+    std::cout << "Current scope: " << currentScope() << "\n";
 }
 
 // todo: specify if i'm entering a class scope or a fxn scope. We might need that info

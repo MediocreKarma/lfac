@@ -1,7 +1,76 @@
 #include "AST.h"
 
-AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
-    type(), value(), left(&_left), right(&_right) {
+AST::AST(AST* other) {
+    using namespace TypeNms;
+    type = other->type;
+    value = other->value;
+    left = other;
+}
+
+AST::AST(int literal) {
+    using namespace TypeNms;
+    type = INT;
+    value = literal;
+    left = right = nullptr;
+}
+
+AST::AST(float literal) {
+    using namespace TypeNms;
+    type = FLOAT;
+    value = (float)literal;
+    left = right = nullptr;
+}
+
+AST::AST(bool literal) {
+    using namespace TypeNms;
+    type = FLOAT;
+    value = literal;
+    left = right = nullptr;
+}
+
+AST::AST(std::string literal) {
+    using namespace TypeNms;
+    type = STRING;
+    value = literal;
+    left = right = nullptr;
+}
+
+AST::AST(char literal) {
+    using namespace TypeNms;
+    type = CHAR;
+    value = literal;
+    left = right = nullptr;
+}
+
+AST::AST(const SymbolData& symbol) {
+    // nu stiu cum sa fac tbh
+    // eu s curioasa cum tratam fxn calls
+    // trebe sa avem un default AST pt fiecare type!!
+}
+
+AST::AST(Operation::UnaryOp op, const AST*& _left) :
+    type(), value(), left(_left) {
+    
+    using namespace TypeNms;
+    using enum Operation::UnaryOp;
+
+    type = left->type;
+
+    if (type != BOOL) {
+        // yyerror
+    }
+    if (!Operation::booleanOperator(op)) {
+        // yyerror
+    }
+    switch(op) {
+        case NEGB:
+            value = !std::get<bool>(left->value); 
+            break;
+    }
+}
+
+AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
+    type(), value(), left(_left), right(_right) {
 
     using namespace TypeNms;
     using enum Operation::BinaryOp;
@@ -18,7 +87,7 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
         // yyerror(error.c_str());
     }
     if (left->value.index() != right->value.index()) {
-        // disaster?
+        // disaster
         exit(1);
     }
     type = left->type;
@@ -42,7 +111,6 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
             // good
             return;
         }
-
         std::string error = "Invalid operation for boolean type";
         // yyerror
     }
@@ -57,6 +125,7 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
                         case CHAR: value = std::get<char>(left->value) < std::get<char>(right->value); break;
                         default:; // yyerror
                     }
+                    type = BOOL;
                     break;
                 case LEQ:
                     switch (type) {
@@ -66,6 +135,7 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
                         case CHAR: value = std::get<char>(left->value) <= std::get<char>(right->value); break;
                         default:; // yyerror
                     }
+                    type = BOOL;
                     break;
                 case GT:
                     switch (type) {
@@ -75,6 +145,7 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
                         case CHAR: value = std::get<char>(left->value) > std::get<char>(right->value); break;
                         default:; // yyerror
                     }
+                    type = BOOL;
                     break;
                 case GEQ:
                     switch (type) {
@@ -84,11 +155,14 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
                         case CHAR: value = std::get<char>(left->value) >= std::get<char>(right->value); break;
                         default:; // yyerror
                     }
+                    type = BOOL;
                     break;
                 case EQ:
                     value = left->value == right->value;
+                    type = BOOL;
                 case NEQ:
                     value = left->value != right->value;
+                    type = BOOL;
                 default: /* unreachable */;
             }
             // good
@@ -144,26 +218,25 @@ AST::AST(Operation::BinaryOp op, const AST& _left, const AST& _right) :
     } 
 }
 
-/*
-try { result = get<int>(var1) + get<int>(var2); } catch(...) {}
-try { result = get<float>(var1) + get<float>(var2); } catch(...) {}
-try { result = get<string>(var1) + get<string>(var2); } catch(...) {}
-try { result = get<char>(var1) + get<char>(var2); } catch(...) {}
 
-try { result = get<int>(var1) + get<int>(var2); } 
-catch(...) {
-    try { result = get<float>(var1) + get<float>(var2); } 
-    catch(...) {
-        try { result = get<string>(var1) + get<string>(var2); } 
-        catch(...) {
-            try { result = get<char>(var1) + get<char>(var2); } 
-            catch(...) {
-                yyerror();
-            }
-        }
-    }
+std::string AST::typeStr() const {
+    return TypeNms::typeToStr(type);
 }
 
-
-
-*/
+std::string AST::valueStr() const {
+    using namespace TypeNms;
+    switch(type) {
+        case INT :
+            return std::to_string(std::get<int>(value));
+        case FLOAT:
+            return std::to_string(std::get<float>(value));
+        case BOOL:
+            return std::to_string(std::get<bool>(value));
+        case CHAR:
+            return std::to_string(std::get<char>(value));
+        case STRING:
+            return std::get<std::string>(value);
+        default:
+            throw std::invalid_argument("cred ca doar astea se poate");
+    }
+}

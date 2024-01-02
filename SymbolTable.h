@@ -33,14 +33,6 @@ public:
         Variable, Constant, Function
     };
 
-    enum RandomizedScopes {
-        For,
-        While,
-        DoWhile,
-        If,
-        Else /*is the scope of an else part of an if? eu zic ca s separate dar ce i drept nici n-am habar*/
-    };
-
     SymbolData(const std::string& name, TypeNms::Type type, Flag flag);
     //SymbolData(std::string&& name, Type type, Flag flag);
     SymbolData(const SymbolData&);
@@ -62,6 +54,7 @@ public:
     friend bool operator == (const SymbolData& a, const SymbolData& b) = default;
     friend bool operator != (const SymbolData& a, const SymbolData& b) = default;
 private:
+
     std::string _name;
     TypeNms::Type type;
     std::string _scope;
@@ -77,19 +70,29 @@ private:
 
 
 class SymbolTable {
+
 public:
+    enum RandomizedScopes {
+        For,
+        While,
+        DoWhile,
+        If,
+        Else,
+        COUNT // doar ca sa stiu cate scopes au fost definite
+    };
     SymbolTable& add(const SymbolData& data);
     //SymbolTable& add(SymbolData&& data);
     bool contains(const std::string& name);
 
     void print(std::ostream& out = std::cout);
     std::string currentScope();
+    void enterScope(RandomizedScopes scope);
     void enterScope(const std::string&);
     void exitScope();
 private:
-    // cat de ridicol ar fi sa fie mai degraba unordered_map<string, unordered_map<string, SymbolData>>? cheia1 ar fi numele variabilei, cheia2 ar fi scope-ul variabilei reprezentat ca un string
-    // as face asta da nuj cat de costisitor e
-    // also se poate face si unordered_map<string, vector<string, SymbolData>> (cat de des declari pana la urma "x" in scope-uri diferite?) dar mna. Cum Crezi
+    static std::string randomizedScopeToStr(RandomizedScopes scope);
+    std::array<size_t, RandomizedScopes::COUNT> _randomizedScopeCounts;
+    
     std::unordered_map<std::string, SymbolData> m_table;
 
     // si trebuie sa tinem undeva si clasele definite so far

@@ -20,7 +20,7 @@ class SymbolTable symbolTable;
      double floatValue;
      bool boolValue;
      char charValue;
-     class AST* astNode;
+     class AST* astNode; // de ce AST* in union?
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
 %token SEP ASSIGN INCREMENT DECREMENT
@@ -138,24 +138,27 @@ statement_list : statement SEP
 
 statement : assignment
 
-          // trebuie sa putem avea declarari ca statementuri in functii ca sa putem avea functii in diverse scope-uri
+          | RETURN expr {/*nimic*/}
+
+          // trebuie sa putem avea declarari ca statementuri in functii ca sa putem avea chetii in diverse scope-uri
           | decl {}
 
-          // functii. function calls
+          // fxn calls
           | ID '(' call_list ')' {}
 
-          | IF expr { /* -- if type of expression IS NOT bool, then raise semantic error. ne trebuie un %type pentru expr... dar nu stiu momentan ce, si depinde de daca ne cere intr-adevar Doar Expresii Aritmetice Si Booleane. daca nu... it all becomes ASTs*/ }':'  { /* add randomized scope name */} block {/*symbolTable.exitScope();*/} ELSE ':'  block {} 
+          | IF expr { /* check if expr bool */} 
+          ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::If);} block {symbolTable.exitScope();} ELSE ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::Else);} block {symbolTable.exitScope();} 
 
-          | WHILE expr { /* -- if type of expression IS NOT bool, then raise semantic error*/ }':' { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
+          | WHILE expr { /* check if expr bool */ }':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::While);} block { symbolTable.exitScope();}
 
-          | FOR assignment SEP expr {/* -- if type of expression IS NOT bool, then raise semantic error*/ } SEP assignment ':'  { /* add randomized scope name */} block { /*symbolTable.exitScope();*/}
+          | FOR {symbolTable.enterScope(SymbolTable::RandomizedScopes::For);} assignment {} SEP expr {/*check if expr bool */ } SEP assignment ':'  {} block { symbolTable.exitScope();}
 
-          | DO ':' block WHILE expr
-          | EVAL '(' expr ')' {std::cout << "In Eval\n";}
-          | TYPEOF '(' expr ')' {std::cout << "In TypeOf\n";}
+          | DO ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::DoWhile);} block WHILE {symbolTable.exitScope();} expr {/*check if expr bool*/}
+          | EVAL '(' expr ')' {/* get value of expr as string, cout*/}
+          | TYPEOF '(' expr ')' {/*get strToType*/}
           ;
 
-assignment: identifier ASSIGN expr {/*check if value of AST is same as... etc*/}
+assignment: identifier ASSIGN expr {/*check if type of AST is type of identifier, also check if identifier is basetype (can't have other types of exprs... cred)*/}
           ;
         
 
@@ -166,8 +169,8 @@ call_list : expr ',' {/**/} call_list
           ;
 
 // e ok sa fie o singura expresie pentru toate tipurile de expresii?
-expr : '(' expr ')'
-     | expr PLUS  expr {/* general todo: check if types are The Same, then do the operation and return the needed node*/}
+expr : '(' expr ')' {}
+     | expr PLUS  expr {}
      | expr MINUS expr {}
      | expr  MUL  expr {}
      | expr  DIV  expr {}
@@ -181,13 +184,13 @@ expr : '(' expr ')'
      | expr  LEQ  expr {}
      | expr  GT   expr {}
      | expr  GEQ  expr {}
-     | INTVAL { std::cout << "Int Literal: " << $1 << std::endl; $$ = new AST(); }
-     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; }
+     | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;}
+     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl;} 
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; }
-     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl;  }
-     | identifier { /* add new AST no matter what, any type is valid */}
-     | ID '(' call_list ')' {}  /* function calls */
+     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl;}
+     | identifier { /* add AST IF!!! identifier is a class member or an array lookup or a simple value. Check in the AST */}
+     | ID '(' call_list ')' {}  /* function calls. check if ID has base-type, if not then don't allow it. */
      ;
 
 // cred ca inclusiv literalilor ar trebui sa le dam SymbolData

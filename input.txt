@@ -49,6 +49,13 @@ fn int main() {
     b := true !!!!
 
     int test_test!!
+    if 2 < 3 : {
+        Eval(247)!!
+    } else : {
+        Eval(483)!!
+    }
+    !!
+
     test_test := 1!!
 
     str := "aa"!!!!!!
