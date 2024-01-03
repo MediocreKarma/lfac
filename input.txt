@@ -81,4 +81,8 @@ fn int main() {
         Eval(1 + 2)!!
         Eval(3 > 5)!!
     }!!
+    
+    if (b) : {
+        Eval(10)!!
+    }!!
 }

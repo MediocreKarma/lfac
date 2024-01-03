@@ -146,8 +146,12 @@ statement : assignment
           // fxn calls
           | ID '(' call_list ')' {}
 
-          | IF expr { /* check if expr bool */} 
-          ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::If);} block {symbolTable.exitScope();} ELSE ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::Else);} block {symbolTable.exitScope();} 
+          // | IF expr { /* check if expr bool */} 
+          // ':' {} block {symbolTable.exitScope();} ELSE ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::Else);} block {symbolTable.exitScope();} 
+
+          | if_expr ELSE ':' block {} 
+
+          | if_expr
 
           | WHILE expr { /* check if expr bool */ }':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::While);} block { symbolTable.exitScope();}
 
@@ -157,6 +161,8 @@ statement : assignment
           | EVAL '(' expr ')' {/* get value of expr as string, cout*/}
           | TYPEOF '(' expr ')' {/*get strToType*/}
           ;
+
+if_expr   : IF expr { /* verify expr */ } ':' { symbolTable.enterScope(SymbolTable::RandomizedScopes::If);} block { symbolTable.exitScope();}
 
 assignment: identifier ASSIGN expr {/*check if type of AST is type of identifier, also check if identifier is basetype (can't have other types of exprs... cred)*/}
           ;
