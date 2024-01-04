@@ -9,8 +9,10 @@
 "const" {return CONST;}
 "class" {return CLASS;}
 "array" {return ARRAY;}
-"this" {return THIS;}
+"self" {return SELF;}
 "fn" {return FN;}
+"decl" {return DECL;}
+"def" {return DEF;}
 
 "CLASSES" {return CLASSES;}
 "ENDCLASSES" {return ENDCLASSES;}

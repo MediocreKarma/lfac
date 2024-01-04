@@ -1,11 +1,16 @@
 CLASSES
 
 class My {
-    int xy!!
-    int xx!!
-    fn int scopeFunction(int x) {
-       string new!!
-    }!!
+    decl {
+        int xy!!
+        int xx!!
+        fn int scopeFunction(int x)!!
+    }
+    def {
+        fn int scopeFunction(int x) {
+            string new!!
+        }
+    }
 }
 
 
@@ -38,8 +43,7 @@ fn class My function2(string randParam, class My param2) {
 ENDFUNCTIONS
 
 fn int main() { 
-    x := 6 + 5
-    !!
+    x := 6 + 5!!
 
     c[2] := 5!!
     c := someVariableThatDoesntExistYet!!
@@ -51,10 +55,10 @@ fn int main() {
     int test_test!!
     if 2 < 3 : {
         Eval(247)!!
-    } else : {
+    } 
+    else : {
         Eval(483)!!
     }
-    !!
 
     test_test := 1!!
 
@@ -65,24 +69,26 @@ fn int main() {
 
     for x := 5 !! x < 23 !! x := x + 1 : {
         Eval(2 + 5)!!
-    }!!
+    }
 
     while x < 25 : {
         TypeOf(7 < 4) !!
-    }!!
+    }
 
     c := 'x'!!
 
     if (b) : {
-        Eval(10 + 15)!!
+        Eval(10 - 15 - 10)!!
         TypeOf(7 < 4) !!
     }
     else : {
         Eval(1 + 2)!!
         Eval(3 > 5)!!
-    }!!
+    }
     
     if (b) : {
-        Eval(10)!!
-    }!!
+        Eval(-10)!!
+    }
+
+    a++!!
 }
