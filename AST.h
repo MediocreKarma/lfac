@@ -18,7 +18,7 @@ public:
     AST(Operation::BinaryOp op, AST*& left, AST*& right);
     AST(Operation::UnaryOp op, AST*& left);
 
-    AST(AST* other);
+    AST(const AST* other);
     AST(int literal);
     AST(float literal);
     AST(const char* literal);
@@ -36,7 +36,7 @@ private:
     SymbolData::Value value;
     // nu stiu cum face yacc scope-urile
     // nu cred ca pot pune referinta aici
-    AST* left, *right;
+    const AST* left = nullptr, *right = nullptr;
 };
 
 #endif

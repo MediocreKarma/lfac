@@ -44,6 +44,11 @@ public:
 
     std::string name() const;
     std::string scope() const;
+    TypeNms::Type type() const;
+    Value value() const;
+
+    SymbolData* member(const std::string& id);
+    SymbolData* member(size_t index);
 
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
 
@@ -53,7 +58,7 @@ public:
 private:
 
     std::string _name;
-    TypeNms::Type type;
+    TypeNms::Type _type;
     std::string _scope;
     bool _isInit;
     bool _isConst;
@@ -64,7 +69,7 @@ private:
     // pt classInstances ca sa stie ce clasa is daca-s tip custom... ca ne trebuie cand afisam type ul in symboltable
     std::string _className;
 
-    std::vector<Value> value;
+    std::vector<Value> _value;
 
     using base_var = std::variant<int, bool, char, std::string, float>;
 
@@ -74,8 +79,8 @@ private:
 
 
 class SymbolTable {
-
 public:
+    SymbolTable() = default;
     SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0, const std::string& className = "");
     SymbolTable& remove(const SymbolData& data);
     //SymbolTable& add(SymbolData&& data);
@@ -90,13 +95,14 @@ public:
     void exitScope();
 
     SymbolData* find(const std::string& scopedName);
+    SymbolData* findId(const std::string& id);
     SymbolData* findClass(const std::string& name);
 
 private:
     
     std::unordered_map<std::string, SymbolData> _table;
     std::unordered_map<std::string, SymbolData> _classesTable;
-    std::vector<std::string> _currentScopeHierarchy;
+    std::vector<std::string> _currentScopeHierarchy = {""};
 };
 
 #endif

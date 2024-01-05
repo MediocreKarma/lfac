@@ -41,7 +41,7 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier
 
 // am gasit asta pe net. sper sa nu ne strice mai tare
 // daca te enerveaza warningurile legate de unused value da le comment
@@ -170,10 +170,22 @@ globals_block: decl SEP globals_block
 block : '{' {symbolTable.enterAnonymousScope(); } statement_list '}' { symbolTable.exitScope();} 
      ;
 
-//probabil return type-ul ar trebui sa fie un SymbolData*... nu?
-identifier: ID
-          | ID '.' ID {/*class member*/}
-          | ID '[' INTVAL ']' {/* array member*/}
+identifier: ID { $$ = symbolTable.findId($1); if (!$$) yyerror("Undefined symbol!"); }
+          | ID '.' ID {
+               // find class variable
+               SymbolData* var = symbolTable.findId($1);
+               // TODO : better errors
+               if (var == nullptr) yyerror("Undefined symbol!");
+               $$ = var->member($3);
+               if ($$ == nullptr) yyerror("Undefined member!");
+          }
+          | ID '[' INTVAL ']' {
+               SymbolData* var = symbolTable.findId($1);
+               // TODO : better errors
+               if (var == nullptr) yyerror("Undefined symbol!");
+               $$ = var->member($3);
+               if ($$ == nullptr) yyerror("Array index out of bounds!");
+          }
           | SELF '.' ID {/*class member*/}
           ;
 
@@ -275,7 +287,7 @@ non_sep_stmt   : if_expr ELSE ':' block {}
 if_expr   : IF expr { /* verify expr */ } ':' block
           ;
 
-assignment: identifier ASSIGN expr {delete $3;}
+assignment: identifier ASSIGN expr {delete $3;} // rip
           ;
         
 initializer_list : '{' expr_list '}'
@@ -307,16 +319,21 @@ expr : '(' expr ')' {$$ = new AST($2);}
      | DECREMENT identifier {}
      | identifier INCREMENT {}
      | identifier DECREMENT {}
-     | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;  $$ = new AST((int)$1); }
-     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; $$ = new AST((float)$1);} 
+     | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;  $$ = new AST((int)$1); } 
+     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; $$ = new AST((float)$1); } 
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; $$ = new AST((bool)$1); }
-     | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1);}
-     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1);}
+     | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1); }
+     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1); }
      | identifier { /* TEMPORAR!!!!!! todo: change */ $$ = new AST((int)0);}
      | ID '(' expr_list ')' {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
      ;
 
 %%
+// s-ar putea sa vrem si din asta
+void yywarning(const char* s) {
+
+}
+
 void yyerror(const char * s) {
      printf("\033[1;31mError:\033[0m %s \033[1;36m(at line: %d)\033[0m\n",s,yylineno);
      exit(1);

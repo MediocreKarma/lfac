@@ -23,10 +23,10 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     // trebe cumva si numele clasei dat tho ca sa stie de care tip de clasa e
     _scope = scope;
     _name = name;
-    type = t;
+    _type = t;
     _isArray = size > 0;
     if (_isArray) {
-        value.resize(size, SymbolData(scope, "", t, f));
+        _value.resize(size, SymbolData(scope, "", t, f));
     }
     
     _isInit = false;
@@ -50,62 +50,62 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
 }
 
 SymbolData::SymbolData(const SymbolData& rhs) :
-    _name(rhs._name), type(rhs.type), _scope(rhs._scope), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), value(rhs.value) {}
+    _name(rhs._name), _type(rhs._type), _scope(rhs._scope), _isInit(rhs._isInit), 
+    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _value(rhs._value) {}
 
 SymbolData::SymbolData(SymbolData&& rhs) :
-    _name(std::move(rhs._name)), type(rhs.type), _scope(std::move(rhs._scope)), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), value(std::move(rhs.value)) {}
+    _name(std::move(rhs._name)), _type(rhs._type), _scope(std::move(rhs._scope)), _isInit(rhs._isInit), 
+    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _value(std::move(rhs._value)) {}
 
 SymbolData& SymbolData::operator = (const SymbolData& rhs) {
     _name = rhs._name;
-    type = rhs.type;
+    _type = rhs._type;
     _scope = rhs._scope;
     _isInit = rhs._isInit;
     _isConst = rhs._isConst;
     _isArray = rhs._isArray;
     _isFunc = rhs._isFunc;
-    value = rhs.value;
+    _value = rhs._value;
     return *this;
 }
 
 SymbolData& SymbolData::operator = (SymbolData&& rhs) {
     _name = std::move(rhs._name);
-    type = rhs.type;
+    _type = rhs._type;
     _scope = std::move(rhs._scope);
     _isInit = rhs._isInit;
     _isConst = rhs._isConst;
     _isArray = rhs._isArray;
     _isFunc = rhs._isFunc;
-    value = std::move(rhs.value);
+    _value = std::move(rhs._value);
     return *this;
 }
 
-SymbolData& SymbolData::assign(const Value& _value) {
-    if (!assignable(_value)) { 
+SymbolData& SymbolData::assign(const Value& val) {
+    if (!assignable(val)) { 
         throw std::invalid_argument("Value unassignable");
     }
     else {
         _isInit = true;
-        value.emplace_back(_value);
+        _value.emplace_back(val);
     }
     return *this;
 }
 
-bool SymbolData::assignable(const Value& _value) {
-    switch (type) {
+bool SymbolData::assignable(const Value& val) {
+    switch (_type) {
         case INT:
-            return std::holds_alternative<int>(_value);
+            return std::holds_alternative<int>(val);
         case FLOAT:
-            return std::holds_alternative<float>(_value);
+            return std::holds_alternative<float>(val);
         case CHAR:
-            return std::holds_alternative<char>(_value);
+            return std::holds_alternative<char>(val);
         case STRING:
-            return std::holds_alternative<std::string>(_value);
+            return std::holds_alternative<std::string>(val);
         case BOOL:
-            return std::holds_alternative<bool>(_value);
+            return std::holds_alternative<bool>(val);
         case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<SymbolData>(_value);
+            return std::holds_alternative<SymbolData>(val);
     }
     // throw sau yyerror si return false; nu stiu inca
     if (_isArray) {
@@ -120,11 +120,11 @@ bool SymbolData::assignable(const Value& _value) {
     return true;
 }
 
-bool SymbolData::assignable(const std::vector<Value>& _value) {
+bool SymbolData::assignable(const std::vector<Value>& value) {
     if (_value.size() != value.size()) {
         return false;
     }
-    switch (type) {
+    switch (_type) {
         case INT:
             return std::holds_alternative<int>(_value[0]);
         case FLOAT:
@@ -159,9 +159,49 @@ std::string SymbolData::scope() const {
     return _scope;
 }
 
+TypeNms::Type SymbolData::type() const {
+    return _type;
+}
+
+SymbolData::Value SymbolData::value() const {
+    // TEMPORAR
+    // TODO: fix
+    return _value[0];
+}
+
+SymbolData* SymbolData::member(const std::string& id) {
+    if (_isArray || _isFunc) {
+        return nullptr;
+    }
+    if (_type != TypeNms::Type::CUSTOM) {
+        return nullptr;
+    }
+    for (Value& val : _value) {
+        if (std::holds_alternative<SymbolData>(val) == false) {
+            // vals of id are not symbol data
+            return nullptr;
+        }        
+        SymbolData& storedSymbol = std::get<SymbolData>(val);
+        if (storedSymbol.name() == id) {
+            return &storedSymbol;
+        }
+    }
+    return nullptr;
+}
+
+SymbolData* SymbolData::member(const size_t index) {
+    if (!_isArray) {
+        return nullptr;
+    }
+    if (index < _value.size()) {
+        return std::get_if<SymbolData>(&_value[index]);
+    }
+    return nullptr;
+}
+
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     // momentan atat
-    out << typeToStr(sd.type) << ' ' << sd.name();
+    out << typeToStr(sd._type) << ' ' << sd.name();
     return out;
 }
 
@@ -222,6 +262,18 @@ SymbolData* SymbolTable::find(const std::string& scopedName) {
     auto it = _table.find(scopedName);
     if (it != _table.end()) {
         return &it->second;
+    }
+    return nullptr;
+}
+
+SymbolData* SymbolTable::findId(const std::string& id) {
+    std::string scope = "";
+    for (const std::string& scopeAdd: _currentScopeHierarchy) {
+        scope += scopeAdd + "/";
+        auto it = _table.find(scope + id);
+        if (it != _table.end()) {
+            return &it->second;
+        }
     }
     return nullptr;
 }

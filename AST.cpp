@@ -1,13 +1,11 @@
 #include "AST.h"
 
 AST::~AST() {
-    // ... cred??? 
-    // macar sa fie definit ceva
     delete left;
     delete right;
 }
 
-AST::AST(AST* other) {
+AST::AST(const AST* other) {
     using namespace TypeNms;
     type = other->type;
     value = other->value;
@@ -18,41 +16,34 @@ AST::AST(int literal) {
     using namespace TypeNms;
     type = INT;
     value = literal;
-    left = right = nullptr;
 }
 
 AST::AST(float literal) {
     using namespace TypeNms;
     type = FLOAT;
     value = (float)literal;
-    left = right = nullptr;
 }
 
 AST::AST(bool literal) {
     using namespace TypeNms;
     type = FLOAT;
     value = literal;
-    left = right = nullptr;
 }
 
 AST::AST(const char* literal) {
     using namespace TypeNms;
     type = STRING;
     value = std::string(literal);
-    left = right = nullptr;
 }
 
 AST::AST(char literal) {
     using namespace TypeNms;
     type = CHAR;
     value = literal;
-    left = right = nullptr;
 }
 
 AST::AST(const SymbolData& symbol) {
-    // left = right = nullptr;
-    // luam valoarea...? Sau ce...???
-    // probabil da...???
+    type = symbol.type();
 }
 
 AST::AST(Operation::UnaryOp op, AST*& _left) :
