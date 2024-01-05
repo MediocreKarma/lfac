@@ -19,7 +19,7 @@ bool Scope::encompassingScope(const std::string& active, const std::string& enco
     return active.find(encompassing) != std::string::npos;
 }
 
-SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size) {
+SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size, const std::string& className) {
     // trebe cumva si numele clasei dat tho ca sa stie de care tip de clasa e
     _scope = scope;
     _name = name;
@@ -37,6 +37,15 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
         case Function:
             _isFunc = true;
             break;
+        case Class:
+            _isClassDef = true;
+            break;
+    }
+    if (t == CUSTOM) {
+        _className = className;
+    }
+    else if (!className.empty()) {
+        throw std::invalid_argument("Custom class name given for non-class-instance type symbol");
     }
 }
 
@@ -156,9 +165,14 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     return out;
 }
 
-SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size) {
-    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size));
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size, className));
     std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
+    return *this;
+}
+
+SymbolTable& SymbolTable::addClass(const std::string& name) {
+    _classesTable.emplace(name, SymbolData(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0));
     return *this;
 }
 
@@ -207,6 +221,14 @@ void SymbolTable::exitScope() {
 SymbolData* SymbolTable::find(const std::string& scopedName) {
     auto it = _table.find(scopedName);
     if (it != _table.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+SymbolData* SymbolTable::findClass(const std::string& name) {
+    auto it = _classesTable.find(name);
+    if (it != _classesTable.end()) {
         return &it->second;
     }
     return nullptr;

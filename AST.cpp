@@ -1,5 +1,12 @@
 #include "AST.h"
 
+AST::~AST() {
+    // ... cred??? 
+    // macar sa fie definit ceva
+    delete left;
+    delete right;
+}
+
 AST::AST(AST* other) {
     using namespace TypeNms;
     type = other->type;

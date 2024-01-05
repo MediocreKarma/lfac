@@ -50,7 +50,7 @@ class SymbolTable symbolTable;
 %start start_program
 %%
 
-start_program : progr { std::cout << "The code syntax is correct.\n";}
+start_program : progr { std::cout << "The program is syntactically and semantically correct.\n";}
 
                                                        // trebe facuta adaugarea functiei main in symboltable
 progr: classes_section globals_section functions_section MAIN  '{' {symbolTable.add("main", TypeNms::strToType("int"), SymbolData::Function); symbolTable.enterScope("main"); } statement_list '}' { symbolTable.exitScope();}
@@ -80,7 +80,14 @@ classes_block: classes_block class_definition
              | /* epsilon */
              ;
 
-class_definition: CLASS ID '{' { symbolTable.enterScope($2); } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {/*add class to defined class ids??*/ symbolTable.exitScope();};
+class_definition: CLASS ID '{' {
+                         if (symbolTable.findClass($2) != nullptr) {
+                              yyerror("Class already defined");
+                         }
+                         symbolTable.addClass($2);
+                         symbolTable.enterScope($2);
+                         /* todo: save data about class, probably, in specific order*/
+                    } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
 
 class_members: decl SEP class_members
              | /* epsilon */
@@ -101,7 +108,7 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($3)) {
-                              yyerror("Function declaration invalid because symbol already exists!");
+                              yyerror("Function declaration invalid because symbol already exists");
                          }
                          symbolTable.add($3, TypeNms::strToType($2), SymbolData::Function);
                          $$ = symbolTable.find(symbolTable.currentScope() + $3);
@@ -115,9 +122,12 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                               ptr = next;
                          }
                          // todo: check if class id is even declared
+                         if (symbolTable.findClass($3) == nullptr) {
+                              yyerror("Cannot declare function with undeclared class return-type");
+                         }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($4)) {
-                              yyerror("Function declaration invalid because symbol already exists!");
+                              yyerror("Function declaration invalid because symbol already exists");
                          }
                          symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function);
                          $$ = symbolTable.find(symbolTable.currentScope() + $4);
@@ -169,23 +179,27 @@ decl : decl_only
 
 decl_only: TYPE ID { 
                if(symbolTable.contains($2)) {
-                    yyerror("Base type symbol could not be created because symbol name already exists!");
+                    yyerror("Base type symbol could not be created because symbol name already exists");
                }
                symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
           | ARRAY TYPE ID '[' INTVAL ']' { /* array decl */
                if(symbolTable.contains($3)) {
-                    yyerror("Array type symbol could not be created because symbol name already exists!");
+                    yyerror("Array type symbol could not be created because symbol name already exists");
                }
                symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, $5);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
           | CLASS ID ID  { /*instante de clase. class MyClass x*/
                if(symbolTable.contains($3)) {
-                    yyerror("Class type symbol could not be created because symbol name already exists!");
+                    yyerror("Class type symbol could not be created because symbol name already exists");
                }
-               symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable);
+               // check if class is defined
+               if (symbolTable.findClass($2) == nullptr) {
+                    yyerror("Cannot instantiate symbol of non-defined class type");
+               }
+               symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable, 0, $2); // added class name
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
 
@@ -193,14 +207,14 @@ decl_only: TYPE ID {
 // todo: DON'T FORGET TO MAKE EXPR WORK
 decl_assign    : TYPE ID ASSIGN expr {
                     if(symbolTable.contains($2)) {
-                         yyerror("Symbol already exists!");
+                         yyerror("Symbol already exists");
                     }
                     symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $2);
                }
                | CONST TYPE ID ASSIGN expr {
                     if(symbolTable.contains($2)) {
-                         yyerror("Symbol already exists!");
+                         yyerror("Symbol already exists");
                     }
                     symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
@@ -242,8 +256,8 @@ sep_stmt  : assignment {}
           | RETURN expr {/*expr is of func type?*/}
           | decl_assign {}
           | decl_only {}
-          | EVAL '(' expr ')' {/* get value of expr as string, cout*/}
-          | TYPEOF '(' expr ')' {/*get typeToStr*/}
+          | EVAL '(' expr ')' {/* ENFORCE only base-type exprs!!!!! get value of expr as string, cout*/}
+          | TYPEOF '(' expr ')' {/* ENFORCE only base-type exprs!!!!! get typeToStr*/}
           | DO ':' block WHILE expr {/*check if expr bool*/} 
           | expr { /*kinda just ignore*/}
 
@@ -299,7 +313,7 @@ expr : '(' expr ')' {}
 
 %%
 void yyerror(const char * s) {
-     printf("Error: %s at line: %d\n",s,yylineno);
+     printf("\033[1;31mError:\033[0m %s \033[1;36m(at line: %d)\033[0m\n",s,yylineno);
      exit(1);
 }
 

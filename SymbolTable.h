@@ -31,7 +31,7 @@ public:
         Variable, Constant, Function, Class // eu zic ca trebe
     };
 
-    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0);
+    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0, const std::string& className = "");
     SymbolData(const SymbolData&);
     SymbolData(SymbolData&&);
     SymbolData& operator = (const SymbolData&);
@@ -76,10 +76,12 @@ private:
 class SymbolTable {
 
 public:
-    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0);
+    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0, const std::string& className = "");
     SymbolTable& remove(const SymbolData& data);
     //SymbolTable& add(SymbolData&& data);
     bool contains(const std::string& name);
+
+    SymbolTable& addClass(const std::string& name);
 
     void print(std::ostream& out = std::cout);
     std::string currentScope();
@@ -88,10 +90,12 @@ public:
     void exitScope();
 
     SymbolData* find(const std::string& scopedName);
+    SymbolData* findClass(const std::string& name);
 
 private:
     
     std::unordered_map<std::string, SymbolData> _table;
+    std::unordered_map<std::string, SymbolData> _classesTable;
     std::vector<std::string> _currentScopeHierarchy;
 };
 
