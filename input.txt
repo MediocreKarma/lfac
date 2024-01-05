@@ -31,15 +31,19 @@ const char c := 'a'!!!!
 ENDGLOBALS
 
 FUNCTIONS
-
-fn int function(int randParam, char randParam2) {
-    int newVar!!!!
+decl {
+    fn int function(int param1, char param2)!!
+    fn class My function2(string randParam, class My param2)!!
 }
+def {
+    fn int function(int randParam, char randParam2) {
+        int newVar!!!!
+    }
 
-fn class My function2(string randParam, class My param2) {
-    char newVar2!!!!!!
+    fn class My function2(string randParam, class My param2) {
+        char newVar2!!!!!!
+    }
 }
-
 ENDFUNCTIONS
 
 fn int main() { 
@@ -89,6 +93,7 @@ fn int main() {
     if (b) : {
         Eval(-10)!!
     }
-
-    a++!!
+    {
+        a++!!
+    }
 }

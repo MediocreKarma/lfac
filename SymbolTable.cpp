@@ -12,17 +12,22 @@ std::string Scope::scopeToString(const std::vector<std::string>& scope) {
 }
 
 std::string Scope::scopeWithNameToString(const std::string& scope, const std::string& name) {
-    return scope + name + "/";
+    return scope + name;
 }
 
 bool Scope::encompassingScope(const std::string& active, const std::string& encompassing) {
     return active.find(encompassing) != std::string::npos;
 }
 
-SymbolData::SymbolData(const std::string& name, const TypeNms::Type t, const Flag f) {
+SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size) {
+    _scope = scope;
     _name = name;
     type = t;
-    _isArray = false;
+    _isArray = size > 0;
+    if (_isArray) {
+        value.resize(size, SymbolData(scope, "", t, f));
+    }
+    
     _isInit = false;
     switch (f) {
         case Constant:
@@ -72,7 +77,6 @@ SymbolData& SymbolData::assign(const Value& _value) {
     }
     else {
         _isInit = true;
-        _isArray = false;
         value.emplace_back(_value);
     }
     return *this;
@@ -91,7 +95,7 @@ bool SymbolData::assignable(const Value& _value) {
         case BOOL:
             return std::holds_alternative<bool>(_value);
         case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<std::vector<SymbolData>>(_value);
+            return std::holds_alternative<SymbolData>(_value);
     }
     // throw sau yyerror si return false; nu stiu inca
     if (_isArray) {
@@ -122,7 +126,7 @@ bool SymbolData::assignable(const std::vector<Value>& _value) {
         case BOOL:
             return std::holds_alternative<bool>(_value[0]);
         case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<std::vector<SymbolData>>(_value[0]);
+            return std::holds_alternative<SymbolData>(_value[0]);
     }
     // throw sau yyerror si return false; nu stiu inca
     if (!_isArray) {
@@ -151,22 +155,28 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     return out;
 }
 
-SymbolTable& SymbolTable::add(const SymbolData& data) {
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size) {
     // current scope
     // todo: add more types of scopes here
     // -- am scos si _var_ pentru nu i ca si cum vreau sa pot sa am de exemplu o functie si o variabila si un constant cu acelasi nume in acelasi scope.
     // vreau sa fie toate Simboluri non-re-declarabile
-    m_table.emplace(Scope::scopeWithNameToString(currentScope(), data.name()), data);
-    std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), data.name()) + "\n";
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size));
+    std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
+    return *this;
+}
+
+SymbolTable& SymbolTable::remove(const SymbolData& data) {
+    std::cout << "Removed element " << data.scope() + data.name() << '\n';
+    _table.erase(data.scope() + data.name());
     return *this;
 }
 
 bool SymbolTable::contains(const std::string& name) {
-    return m_table.contains(Scope::scopeWithNameToString(currentScope(), name));
+    return _table.contains(Scope::scopeWithNameToString(currentScope(), name));
 }
 
 void SymbolTable::print(std::ostream& out) {
-    for (const auto& [path, smb] : m_table) {
+    for (const auto& [path, smb] : _table) {
         out << smb << '\n';
     }
 }
@@ -175,21 +185,14 @@ std::string SymbolTable::currentScope() {
     return Scope::scopeToString(_currentScopeHierarchy);
 }
 
-std::string SymbolTable::randomizedScopeToStr(RandomizedScopes scope) {
-    switch(scope) {
-        case For : return "FOR";
-        case While: return "WHILE";
-        case DoWhile: return "DOWHILE";
-        case If: return "IF";
-        case Else: return "ELSE";
-        default: return "UNKNOWN_SCOPE";
+void SymbolTable::enterAnonymousScope() {
+    static size_t i = 0;
+    if (i == SIZE_MAX) {
+        // reached scope limit for program (unfeasable)
     }
-}
-
-void SymbolTable::enterScope(RandomizedScopes scope) {
-    std::string result =  "_" + randomizedScopeToStr(scope) + "_" + std::to_string(_randomizedScopeCounts[scope]++);
-    _currentScopeHierarchy.push_back(result);
-    std::cout << "Current scope: " << currentScope() << "\n";
+    std::string scope = std::to_string(i++);
+    _currentScopeHierarchy.push_back(scope);
+    std::cout << "Current scope: " << currentScope() << '\n';
 }
 
 // todo: specify if i'm entering a class scope or a fxn scope. We might need that info
@@ -201,4 +204,12 @@ void SymbolTable::enterScope(const std::string& str) {
 void SymbolTable::exitScope() {
     _currentScopeHierarchy.pop_back();
     std::cout << "Current scope: " << currentScope() << "\n";
+}
+
+SymbolData* SymbolTable::find(const std::string& scopedName) {
+    auto it = _table.find(scopedName);
+    if (it != _table.end()) {
+        return &it->second;
+    }
+    return nullptr;
 }

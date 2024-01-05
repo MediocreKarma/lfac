@@ -27,14 +27,13 @@ namespace Scope {
 class SymbolData {
 public:
 
-    using Value = std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>;
+    using Value = std::variant<int, float, char, std::string, bool, SymbolData>;
 
     enum Flag {
         Variable, Constant, Function
     };
 
-    SymbolData(const std::string& name, TypeNms::Type type, Flag flag);
-    //SymbolData(std::string&& name, Type type, Flag flag);
+    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0);
     SymbolData(const SymbolData&);
     SymbolData(SymbolData&&);
     SymbolData& operator = (const SymbolData&);
@@ -62,7 +61,7 @@ private:
     bool _isConst;
     bool _isArray;
     bool _isFunc;
-    std::vector<std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>> value;
+    std::vector<Value> value;
 
     using base_var = std::variant<int, bool, char, std::string, float>;
 
@@ -74,28 +73,22 @@ private:
 class SymbolTable {
 
 public:
-    enum RandomizedScopes {
-        For,
-        While,
-        DoWhile,
-        If,
-        Else,
-        COUNT // doar ca sa stiu cate scopes au fost definite
-    };
-    SymbolTable& add(const SymbolData& data);
+    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0);
+    SymbolTable& remove(const SymbolData& data);
     //SymbolTable& add(SymbolData&& data);
     bool contains(const std::string& name);
 
     void print(std::ostream& out = std::cout);
     std::string currentScope();
-    void enterScope(RandomizedScopes scope);
     void enterScope(const std::string&);
+    void enterAnonymousScope();
     void exitScope();
+
+    SymbolData* find(const std::string& scopedName);
+
 private:
-    static std::string randomizedScopeToStr(RandomizedScopes scope);
-    std::array<size_t, RandomizedScopes::COUNT> _randomizedScopeCounts;
     
-    std::unordered_map<std::string, SymbolData> m_table;
+    std::unordered_map<std::string, SymbolData> _table;
 
     // si trebuie sa tinem undeva si clasele definite so far
     
