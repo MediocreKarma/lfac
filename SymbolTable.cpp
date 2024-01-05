@@ -20,6 +20,7 @@ bool Scope::encompassingScope(const std::string& active, const std::string& enco
 }
 
 SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size) {
+    // trebe cumva si numele clasei dat tho ca sa stie de care tip de clasa e
     _scope = scope;
     _name = name;
     type = t;
@@ -156,10 +157,6 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
 }
 
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size) {
-    // current scope
-    // todo: add more types of scopes here
-    // -- am scos si _var_ pentru nu i ca si cum vreau sa pot sa am de exemplu o functie si o variabila si un constant cu acelasi nume in acelasi scope.
-    // vreau sa fie toate Simboluri non-re-declarabile
     _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size));
     std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
     return *this;
@@ -188,7 +185,8 @@ std::string SymbolTable::currentScope() {
 void SymbolTable::enterAnonymousScope() {
     static size_t i = 0;
     if (i == SIZE_MAX) {
-        // reached scope limit for program (unfeasable)
+        // reached scope limit for program (infeasible)
+        throw std::runtime_error("Reached anon scope limit for program");
     }
     std::string scope = std::to_string(i++);
     _currentScopeHierarchy.push_back(scope);

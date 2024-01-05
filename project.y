@@ -52,7 +52,8 @@ class SymbolTable symbolTable;
 
 start_program : progr { std::cout << "The code syntax is correct.\n";}
 
-progr: classes_section globals_section functions_section MAIN block
+                                                       // trebe facuta adaugarea functiei main in symboltable
+progr: classes_section globals_section functions_section MAIN  '{' {symbolTable.add("main", TypeNms::strToType("int"), SymbolData::Function); symbolTable.enterScope("main"); } statement_list '}' { symbolTable.exitScope();}
      ;
 
 classes_section: CLASSES classes_block ENDCLASSES
@@ -79,7 +80,7 @@ classes_block: classes_block class_definition
              | /* epsilon */
              ;
 
-class_definition: CLASS ID '{' { symbolTable.enterScope($2); } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
+class_definition: CLASS ID '{' { symbolTable.enterScope($2); } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {/*add class to defined class ids??*/ symbolTable.exitScope();};
 
 class_members: decl SEP class_members
              | /* epsilon */
@@ -88,8 +89,6 @@ class_members: decl SEP class_members
 // no sep needed when blocks are used
 class_methods_def   : function_definition class_methods_def {}
                     | /* epsilon */
-
-// trebuie ca intr-o functie sa putem avea... this. Sa putem avea pointerul this. sau gen nu stiu. sa putem folosi keywordul this. Dar nu stiu cum exprim asta...
 
 function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')' {
                          // all fn params were added, succesfully, now add them to the functions data and remove them
@@ -115,6 +114,7 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                               delete ptr;
                               ptr = next;
                          }
+                         // todo: check if class id is even declared
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($4)) {
                               yyerror("Function declaration invalid because symbol already exists!");
@@ -132,6 +132,8 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          if (fnData == nullptr) {
                               yyerror("No such function exists");
                          }
+
+                         // check if signature of fn is same here as in decl
                     }
                     | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' '{' statement_list '}' {
                          // TODO : IMPLEMENT HERE
@@ -140,6 +142,8 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          if (fnData == nullptr) {
                               yyerror("No such function exists");
                          }
+                         
+                         // check if signature of fn is same here as in decl
                     }
                     ;
 
@@ -159,8 +163,8 @@ identifier: ID
           ;
 
 decl : decl_only
-     | decl_assign                                                                       // amc vrem -- bine...
-     | function_declaration /* astea cred ca s function declarations... nuj exact daca sa scriu asa sau daca sa trantesc function_definition si sa iau aici informatiile din $$ */ {}
+     | decl_assign                                             
+     | function_declaration {}
      ;
 
 decl_only: TYPE ID { 
@@ -170,14 +174,14 @@ decl_only: TYPE ID {
                symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
-          | ARRAY TYPE ID '[' INTVAL ']' {
+          | ARRAY TYPE ID '[' INTVAL ']' { /* array decl */
                if(symbolTable.contains($3)) {
                     yyerror("Array type symbol could not be created because symbol name already exists!");
                }
                symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, $5);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
-          | CLASS ID ID  /*ca sa trebuiasca sa spunem "class myClass x;" cand declaram o instanta a unei clase. presupunem ca nu vrem constructori la clase...*/ {
+          | CLASS ID ID  { /*instante de clase. class MyClass x*/
                if(symbolTable.contains($3)) {
                     yyerror("Class type symbol could not be created because symbol name already exists!");
                }
@@ -186,7 +190,7 @@ decl_only: TYPE ID {
           }
 
 
-// DON'T FORGET TO MAKE EXPR WORK
+// todo: DON'T FORGET TO MAKE EXPR WORK
 decl_assign    : TYPE ID ASSIGN expr {
                     if(symbolTable.contains($2)) {
                          yyerror("Symbol already exists!");
@@ -201,7 +205,9 @@ decl_assign    : TYPE ID ASSIGN expr {
                     symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
                } 
-               | CLASS ID ID ASSIGN initializer_list {}
+               | CLASS ID ID ASSIGN initializer_list {
+                    /**/
+               }
                | CONST CLASS ID ID ASSIGN initializer_list {}
                | ARRAY ID ID ASSIGN initializer_list {}
                | CONST ARRAY ID ID ASSIGN initializer_list {}
@@ -237,7 +243,7 @@ sep_stmt  : assignment {}
           | decl_assign {}
           | decl_only {}
           | EVAL '(' expr ')' {/* get value of expr as string, cout*/}
-          | TYPEOF '(' expr ')' {/*get strToType*/}
+          | TYPEOF '(' expr ')' {/*get typeToStr*/}
           | DO ':' block WHILE expr {/*check if expr bool*/} 
           | expr { /*kinda just ignore*/}
 
@@ -287,8 +293,8 @@ expr : '(' expr ')' {}
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; }
      | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl;}
-     | identifier { /* I say we allow everything, it will complain when comparing types */}
-     | ID '(' expr_list ')' {}  /* function calls */
+     | identifier { /* I say we allow everything, it will complain when comparing types -- asta am gandit si scrisesem altceva; da*/}
+     | ID '(' expr_list ')' {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
      ;
 
 %%
@@ -300,6 +306,6 @@ void yyerror(const char * s) {
 int main(int argc, char** argv) {
      yyin=fopen(argv[1],"r");
      yyparse();
-     std::cout << "Basetype, non-const, non-array, non-class variables:" << std::endl;
+     std::cout << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
      symbolTable.print(std::cout);
 } 

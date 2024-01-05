@@ -12,9 +12,7 @@
 
 #include "types.h"
 
-// poate un namespace unde sa definim de exemplu regulile pe baza carora se construiesc/deconstruiesc scope names ar fi cute
-
-namespace Scope {
+namespace Scope { // scope utils
     static const char* DELIM = "/";
     std::string scopeToString(const std::vector<std::string>&);
     std::string scopeWithNameToString(const std::string& scope, const std::string& name);
@@ -30,7 +28,7 @@ public:
     using Value = std::variant<int, float, char, std::string, bool, SymbolData>;
 
     enum Flag {
-        Variable, Constant, Function
+        Variable, Constant, Function, Class // eu zic ca trebe
     };
 
     SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0);
@@ -61,6 +59,11 @@ private:
     bool _isConst;
     bool _isArray;
     bool _isFunc;
+    bool _isClassDef; // daca ai un nume mai bun pt definiri de clase...
+
+    // pt classInstances ca sa stie ce clasa is daca-s tip custom... ca ne trebuie cand afisam type ul in symboltable
+    std::string _className;
+
     std::vector<Value> value;
 
     using base_var = std::variant<int, bool, char, std::string, float>;
@@ -89,9 +92,6 @@ public:
 private:
     
     std::unordered_map<std::string, SymbolData> _table;
-
-    // si trebuie sa tinem undeva si clasele definite so far
-    
     std::vector<std::string> _currentScopeHierarchy;
 };
 

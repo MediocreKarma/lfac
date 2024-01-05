@@ -29,7 +29,7 @@ std::string TypeNms::typeToStr(const Type type) {
             return "Bool";
             break;
         case CUSTOM:
-            return "User defined class";
+            return "Class type";
             break;
     }
     // unreachable
