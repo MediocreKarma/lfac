@@ -43,6 +43,11 @@ class SymbolTable symbolTable;
 %type<list> list_param fn_param
 %type<symbolValue> function_declaration decl decl_only decl_assign
 
+// am gasit asta pe net. sper sa nu ne strice mai tare
+// daca te enerveaza warningurile legate de unused value da le comment
+%destructor { free($$); } <stringValue>
+%destructor { free($$); } <idValue>
+
 %left PLUS MINUS DIV MUL ANDB ORB POW
 %nonassoc LEQ GEQ LT GT EQ NEQ
 %right NEGB
@@ -165,7 +170,7 @@ globals_block: decl SEP globals_block
 block : '{' {symbolTable.enterAnonymousScope(); } statement_list '}' { symbolTable.exitScope();} 
      ;
 
-//what can be assigned to?
+//probabil return type-ul ar trebui sa fie un SymbolData*... nu?
 identifier: ID
           | ID '.' ID {/*class member*/}
           | ID '[' INTVAL ']' {/* array member*/}
@@ -270,7 +275,7 @@ non_sep_stmt   : if_expr ELSE ':' block {}
 if_expr   : IF expr { /* verify expr */ } ':' block
           ;
 
-assignment: identifier ASSIGN expr {/*check if type of AST is type of identifier*/}
+assignment: identifier ASSIGN expr {delete $3;}
           ;
         
 initializer_list : '{' expr_list '}'
@@ -282,32 +287,32 @@ expr_list : expr_list_ext
 expr_list_ext  : expr ',' expr_list_ext { }
                | expr {/**/}
 
-expr : '(' expr ')' {}
-     | expr PLUS  expr {}
-     | expr MINUS expr {}
-     | expr  MUL  expr {}
-     | expr  DIV  expr {}
-     | expr  POW  expr {}
-     | expr ANDB  expr {}
-     | expr  ORB  expr {}
-     | expr  EQ   expr {}
-     | expr  NEQ  expr {}
-     |      NEGB  expr {}
-     | expr  LT   expr {}
-     | expr  LEQ  expr {}
-     | expr  GT   expr {}
-     | expr  GEQ  expr {}
-     |      MINUS expr {}
-     | INCREMENT identifier {}
+expr : '(' expr ')' {$$ = new AST($2);}
+     | expr PLUS  expr { $$ = new AST(Operation::BinaryOp::PLUS, $1, $3);}
+     | expr MINUS expr { $$ = new AST(Operation::BinaryOp::MINUS, $1, $3);}
+     | expr  MUL  expr { $$ = new AST(Operation::BinaryOp::MULT, $1, $3);}
+     | expr  DIV  expr { $$ = new AST(Operation::BinaryOp::DIV, $1, $3);}
+     | expr  POW  expr { $$ = new AST(Operation::BinaryOp::POW, $1, $3);}
+     | expr ANDB  expr { $$ = new AST(Operation::BinaryOp::ANDB, $1, $3);}
+     | expr  ORB  expr { $$ = new AST(Operation::BinaryOp::ORB, $1, $3);}
+     | expr  EQ   expr { $$ = new AST(Operation::BinaryOp::EQ, $1, $3);}
+     | expr  NEQ  expr { $$ = new AST(Operation::BinaryOp::NEQ, $1, $3);}
+     |      NEGB  expr { $$ = new AST(Operation::UnaryOp::NEGB, $2);}
+     | expr  LT   expr { $$ = new AST(Operation::BinaryOp::LT, $1, $3);}
+     | expr  LEQ  expr { $$ = new AST(Operation::BinaryOp::LEQ, $1, $3);}
+     | expr  GT   expr { $$ = new AST(Operation::BinaryOp::GT, $1, $3);}
+     | expr  GEQ  expr { $$ = new AST(Operation::BinaryOp::GEQ, $1, $3);}
+     |      MINUS expr { $$ = new AST(Operation::BinaryOp::MINUS, $2, $2);}
+     | INCREMENT identifier {/*tu le ai fct tu te ocupi*/}
      | DECREMENT identifier {}
      | identifier INCREMENT {}
      | identifier DECREMENT {}
-     | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;}
-     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl;} 
-     | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; }
-     | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; }
-     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl;}
-     | identifier { /* I say we allow everything, it will complain when comparing types -- asta am gandit si scrisesem altceva; da*/}
+     | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;  $$ = new AST((int)$1); }
+     | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; $$ = new AST((float)$1);} 
+     | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; $$ = new AST((bool)$1); }
+     | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1);}
+     | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1);}
+     | identifier { /* TEMPORAR!!!!!! todo: change */ $$ = new AST((int)0);}
      | ID '(' expr_list ')' {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
      ;
 
@@ -319,7 +324,12 @@ void yyerror(const char * s) {
 
 int main(int argc, char** argv) {
      yyin=fopen(argv[1],"r");
-     yyparse();
+     try {
+          yyparse();
+     }
+     catch(std::exception& e) {
+          yyerror(e.what());
+     }
      std::cout << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
      symbolTable.print(std::cout);
 } 

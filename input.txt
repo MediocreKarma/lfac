@@ -20,12 +20,12 @@ GLOBALS
 int x!!
 int y!!
 
-
 array char c[10]!!!!
 
 class My mine!!!!!!!!!!
 
 string str!!
+char cha!!
 bool b!!
 const char c := 'a'!!!!
 ENDGLOBALS
@@ -49,13 +49,13 @@ ENDFUNCTIONS
 fn int main() { 
     x := 6 + 5!!
 
-    c[2] := 5!!
-    c := someVariableThatDoesntExistYet!!
-
-    y := (x - 3 )/ 15 + 3!!
+    y := (6 - 243)/ 15 + 3!!
 
     b := true !!!!
 
+    cha := '\n'!!
+
+    str := "abc\"def" + "def\n\nssss"!!
     int test_test!!
     if 2 < 3 : {
         Eval(247)!!

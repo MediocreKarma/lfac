@@ -13,14 +13,15 @@ public:
     AST(const AST& other) = default;
     AST& operator = (const AST& rhs);
     // expr
-    // aparent asta obtii de la yacc, AST*&
-    AST(Operation::BinaryOp op, const AST*& left, const AST*& right);
-    AST(Operation::UnaryOp op, const AST*& left);
+    // nvm eu nu mai inteleg ce returneaza AST-urile astea...
+    // cred ca defapt aveam vreo eroare tampita lol
+    AST(Operation::BinaryOp op, AST*& left, AST*& right);
+    AST(Operation::UnaryOp op, AST*& left);
 
     AST(AST* other);
     AST(int literal);
     AST(float literal);
-    AST(std::string literal);
+    AST(const char* literal);
     AST(char literal);
     AST(bool literal);
     AST(const SymbolData& symbol);
@@ -35,7 +36,7 @@ private:
     SymbolData::Value value;
     // nu stiu cum face yacc scope-urile
     // nu cred ca pot pune referinta aici
-    const AST* left, *right;
+    AST* left, *right;
 };
 
 #endif

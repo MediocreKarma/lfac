@@ -35,10 +35,10 @@ AST::AST(bool literal) {
     left = right = nullptr;
 }
 
-AST::AST(std::string literal) {
+AST::AST(const char* literal) {
     using namespace TypeNms;
     type = STRING;
-    value = literal;
+    value = std::string(literal);
     left = right = nullptr;
 }
 
@@ -50,12 +50,12 @@ AST::AST(char literal) {
 }
 
 AST::AST(const SymbolData& symbol) {
-    // nu stiu cum sa fac tbh
-    // eu s curioasa cum tratam fxn calls
-    // trebe sa avem un default AST pt fiecare type!!
+    // left = right = nullptr;
+    // luam valoarea...? Sau ce...???
+    // probabil da...???
 }
 
-AST::AST(Operation::UnaryOp op, const AST*& _left) :
+AST::AST(Operation::UnaryOp op, AST*& _left) :
     type(), value(), left(_left) {
     
     using namespace TypeNms;
@@ -76,8 +76,13 @@ AST::AST(Operation::UnaryOp op, const AST*& _left) :
     }
 }
 
-AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
+AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
     type(), value(), left(_left), right(_right) {
+
+    // todo: caz special pt minus ceva
+    if (left == nullptr or right == nullptr) {
+        throw std::runtime_error("Cannot construct binary-op AST with null values");
+    }
 
     using namespace TypeNms;
     using enum Operation::BinaryOp;
@@ -130,7 +135,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case FLOAT: value = std::get<float>(left->value) < std::get<float>(right->value); break;
                         case STRING: value = std::get<std::string>(left->value) < std::get<std::string>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) < std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     type = BOOL;
                     break;
@@ -140,7 +145,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case FLOAT: value = std::get<float>(left->value) <= std::get<float>(right->value); break;
                         case STRING: value = std::get<std::string>(left->value) <= std::get<std::string>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) <= std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     type = BOOL;
                     break;
@@ -150,7 +155,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case FLOAT: value = std::get<float>(left->value) > std::get<float>(right->value); break;
                         case STRING: value = std::get<std::string>(left->value) > std::get<std::string>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) > std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     type = BOOL;
                     break;
@@ -160,7 +165,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case FLOAT: value = std::get<float>(left->value) >= std::get<float>(right->value); break;
                         case STRING: value = std::get<std::string>(left->value) >= std::get<std::string>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) >= std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     type = BOOL;
                     break;
@@ -183,7 +188,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case FLOAT: value = std::get<float>(left->value) + std::get<float>(right->value); break;
                         case STRING: value = std::get<std::string>(left->value) + std::get<std::string>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) + std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MINUS:
@@ -191,7 +196,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case INT: value = std::get<int>(left->value) - std::get<int>(right->value); break;
                         case FLOAT: value = std::get<float>(left->value) - std::get<float>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) - std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MULT:
@@ -199,7 +204,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case INT: value = std::get<int>(left->value) * std::get<int>(right->value); break;
                         case FLOAT: value = std::get<float>(left->value) * std::get<float>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) * std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case DIV:
@@ -207,7 +212,7 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case INT: value = std::get<int>(left->value) / std::get<int>(right->value); break;
                         case FLOAT: value = std::get<float>(left->value) / std::get<float>(right->value); break;
                         case CHAR: value = std::get<char>(left->value) / std::get<char>(right->value); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case POW:
@@ -215,11 +220,11 @@ AST::AST(Operation::BinaryOp op, const AST*& _left, const AST*& _right) :
                         case INT: value = static_cast<int>(std::pow(std::get<int>(left->value), std::get<int>(right->value))); break;
                         case FLOAT: value = static_cast<float>(std::pow(std::get<float>(left->value), std::get<float>(right->value))); break;
                         case CHAR: value = static_cast<char>(std::pow(std::get<char>(left->value), std::get<char>(right->value))); break;
-                        default:; // yyerror
+                        default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 default:;
-                    // yyerror
+                    throw std::runtime_error("Invalid expression operator");
             }
         }
     } 
