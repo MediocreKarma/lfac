@@ -64,6 +64,8 @@ private:
     bool _isFunc;
     std::vector<std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>> value;
 
+    using base_var = std::variant<int, bool, char, std::string, float>;
+
     bool assignable(const Value& _value);
     bool assignable(const std::vector<Value>& _value);
 };

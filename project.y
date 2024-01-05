@@ -151,13 +151,13 @@ sep_stmt       : assignment {}
                | decl {}
                | EVAL '(' expr ')' {/* get value of expr as string, cout*/}
                | TYPEOF '(' expr ')' {/*get strToType*/}
+               | DO ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::DoWhile);} block WHILE {symbolTable.exitScope();} expr {/*check if expr bool*/} 
                | expr { /*kinda just ignore*/}
 
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
                | WHILE expr { /* check if expr bool */ }':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::While);} block { symbolTable.exitScope();}
                | FOR {symbolTable.enterScope(SymbolTable::RandomizedScopes::For);} assignment {} SEP expr {/*check if expr bool */ } SEP assignment ':'  {} block { symbolTable.exitScope();}
-               | DO ':' {symbolTable.enterScope(SymbolTable::RandomizedScopes::DoWhile);} block WHILE {symbolTable.exitScope();} expr {/*check if expr bool*/}
                | block {}
 
 if_expr   : IF expr { /* verify expr */ } ':' { symbolTable.enterScope(SymbolTable::RandomizedScopes::If);} block { symbolTable.exitScope();}
@@ -166,7 +166,7 @@ assignment: identifier ASSIGN expr {/*check if type of AST is type of identifier
           ;
         
 
-// sper sa nu fie ceva gresit aici (vreau sa pot avea ori f(a), ori f(a, b, c), ori f()... )
+// o sa perm compilarea la f(1,2,3,)
 call_list : expr ',' {/**/} call_list
           | expr
           | /* epsilon */
