@@ -42,6 +42,8 @@ public:
     SymbolData& assign(const std::vector<Value>& values);
     SymbolData& assign(std::vector<Value>&& values);
 
+    SymbolData& addSymbol(const SymbolData&); // pt functii/clase...?
+    
     std::string name() const;
     std::string scope() const;
     TypeNms::Type type() const;
@@ -49,6 +51,8 @@ public:
 
     SymbolData* member(const std::string& id);
     SymbolData* member(size_t index);
+
+    bool hasSameTypeAs(const SymbolData& sym) const; // has same members if custom... etc
 
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
 
@@ -64,9 +68,10 @@ private:
     bool _isConst;
     bool _isArray;
     bool _isFunc;
-    bool _isClassDef; // daca ai un nume mai bun pt definiri de clase...
+    bool _isClassDef;
 
-    // pt classInstances ca sa stie ce clasa is daca-s tip custom... ca ne trebuie cand afisam type ul in symboltable
+    // pt classInstances ca sa stie ce clasa is daca-s tip custom...
+    // ca ne trebuie cand afisam type ul in symboltable
     std::string _className;
 
     std::vector<Value> _value;

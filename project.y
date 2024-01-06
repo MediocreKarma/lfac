@@ -94,7 +94,6 @@ class_definition: CLASS ID '{' {
                          }
                          symbolTable.addClass($2);
                          symbolTable.enterScope($2);
-                         /* todo: save data about class, probably, in specific order*/
                     } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
 
 class_members: decl SEP class_members
@@ -108,7 +107,10 @@ class_methods_def   : function_definition class_methods_def {}
 function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')' {
                          // all fn params were added, succesfully, now add them to the functions data and remove them
                          SymbolList* ptr = $6;
+                         std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
+                              symbols.push_back(*ptr->symbol);
+                              // check if maybe symbol with same name isn't already in symbols..?
                               symbolTable.remove(*ptr->symbol);
                               SymbolList* next = ptr->next;
                               delete ptr;
@@ -120,16 +122,20 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          }
                          symbolTable.add($3, TypeNms::strToType($2), SymbolData::Function);
                          $$ = symbolTable.find(symbolTable.currentScope() + $3);
+                         for (const auto& sym : symbols) {
+                              $$->addSymbol(sym);
+                         }
                     }
                     | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' {
                          SymbolList* ptr = $7;
+                         std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
+                              symbols.push_back(*ptr->symbol);
                               symbolTable.remove(*ptr->symbol);
                               SymbolList* next = ptr->next;
                               delete ptr;
                               ptr = next;
                          }
-                         // todo: check if class id is even declared
                          if (symbolTable.findClass($3) == nullptr) {
                               yyerror(std::string("Cannot declare function ") + $4 + " with undeclared class return-type " + $3);
                          }
@@ -137,31 +143,47 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          if(symbolTable.contains($4)) {
                               yyerror(std::string("Function declaration invalid because symbol ") + $4 + " already exists");
                          }
-                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function);
+                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, 0, $3);
                          $$ = symbolTable.find(symbolTable.currentScope() + $4);
+                         for (const auto& sym : symbols) {
+                              $$->addSymbol(sym);
+                         }
                     }
                     ;
 
 // verify if this function definition exists and looks the same
 function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' '{' statement_list '}' {
-                         // TODO : IMPLEMENT HERE
+                         //TODO : IMPLEMENT HERE
+                         SymbolList* ptr = $6;
+                         std::vector<SymbolData> symbols;
+                         while (ptr != nullptr) {
+                              symbols.push_back(*ptr->symbol);
+                              symbolTable.remove(*ptr->symbol);
+                              SymbolList* next = ptr->next;
+                              delete ptr;
+                              ptr = next;
+                         }
                          symbolTable.exitScope();
                          SymbolData* fnData = symbolTable.find(symbolTable.currentScope() + $3);
                          if (fnData == nullptr) {
-                              yyerror(std::string("No such function ") + $3 + " exists in current scope");
+                              yyerror(std::string("No function ") + $3 + " exists in current scope");
                          }
-
-                         // check if signature of fn is same here as in decl
+                         SymbolData tempFnSymbol(symbolTable.currentScope(), $3, TypeNms::strToType($2), SymbolData::Flag::Function);
+                         for (const auto& sym : symbols) {
+                              tempFnSymbol.addSymbol(sym);
+                         }
+                         if (!(fnData->hasSameTypeAs(tempFnSymbol))) {
+                              yyerror(std::string("Definition of function ") + $3 + " has different signature than that of its declaration");
+                         }
                     }
                     | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' '{' statement_list '}' {
                          // TODO : IMPLEMENT HERE
                          symbolTable.exitScope();
                          SymbolData* fnData = symbolTable.find(symbolTable.currentScope() + $4);
                          if (fnData == nullptr) {
-                              yyerror(std::string("No such function ") + $3 + " exists in current scope");
+                              yyerror(std::string("No function ") + $3 + " exists in current scope");
                          }
-                         
-                         // check if signature of fn is same here as in decl
+                         // etc
                     }
                     ;
 
@@ -177,19 +199,17 @@ identifier: ID { $$ = symbolTable.findId($1); if (!$$) yyerror(std::string("Unde
           | ID '.' ID {
                // find class variable
                SymbolData* var = symbolTable.findId($1);
-               // TODO : better errors
-               if (var == nullptr) yyerror("Undefined symbol");
+               if (var == nullptr) yyerror(std::string("Cannot access undefined symbol ") + $1);
                $$ = var->member($3);
-               if ($$ == nullptr) yyerror("Undefined member!");
+               if ($$ == nullptr) yyerror(std::string("Cannot access undefined member ") + $3 + " of symbol " + $1);
           }
           | ID '[' INTVAL ']' {
                SymbolData* var = symbolTable.findId($1);
-               // TODO : better errors
                if (var == nullptr) yyerror(std::string("Undefined symbol ") + $1);
                $$ = var->member($3);
                if ($$ == nullptr) yyerror(std::string("Array index out of bounds for symbol ") + $1);
           }
-          | SELF '.' ID {/*class member*/}
+          | SELF '.' ID {/* il lasam asa. methods are only syntactic anyway si n avem self decat in methods */}
           ;
 
 decl : decl_only
@@ -233,7 +253,6 @@ decl_assign    : TYPE ID ASSIGN expr {
                     $$ = symbolTable.find(symbolTable.currentScope() + $2);
                }
                | CONST TYPE ID ASSIGN expr {
-                    std::cout << "assigning const\n";
                     if(symbolTable.contains($3)) {
                          yyerror(std::string("Symbol ") + $3 + " already exists");
                     }

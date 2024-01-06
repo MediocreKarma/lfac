@@ -44,7 +44,8 @@ AST::AST(char literal) {
 
 AST::AST(const SymbolData& symbol) {
     _type = symbol.type();
-    // si cu value ul ce facem... ?
+    // ar trebui sa putem hold-ui gen. toti membrii aici, in caz de AST-ul e doar identifierul. nu?
+    // _value = symbol.containedSymbols(); sau ceva de genul
 }
 
 AST::AST(Operation::UnaryOp op, AST*& _left) :

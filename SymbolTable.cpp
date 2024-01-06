@@ -153,6 +153,14 @@ bool SymbolData::assignable(const std::vector<Value>& value) {
     return true;
 }
 
+SymbolData& SymbolData::addSymbol(const SymbolData& symbol) {
+    if (!_isFunc and !_isClassDef) {
+        throw std::runtime_error("Cannot add symbol to non-class, non-function symbol");
+    }
+    _value.push_back(SymbolData(symbol));
+    return *this;
+}
+
 std::string SymbolData::name() const {
     return _name;
 }
@@ -171,6 +179,7 @@ SymbolData::Value SymbolData::value() const {
     return _value[0];
 }
 
+// for class defs/instances
 SymbolData* SymbolData::member(const std::string& id) {
     if (_isArray || _isFunc) {
         return nullptr;
@@ -201,9 +210,50 @@ SymbolData* SymbolData::member(const size_t index) {
     return nullptr;
 }
 
+bool SymbolData::hasSameTypeAs(const SymbolData& sym) const {
+    if (_type != CUSTOM and !_isFunc) { // base variable
+        return _type == sym.type(); 
+    }
+
+    if (_isArray) { // any type of array
+        return _type == sym.type() and _value.size() == sym._value.size();
+    }
+
+    if (_isFunc or _isClassDef) {
+        // daca are acelasi return value si acelasi nr de parametri
+        if (_type != sym.type() or _value.size() != sym._value.size()) {
+            return false;
+        } 
+        for (size_t i = 0; i < _value.size(); ++i) {
+            const auto& leftVal = std::get<SymbolData>(_value[i]);
+            const auto& rightVal = std::get<SymbolData>(sym._value[i]);
+
+            // permitem "recursion" ca si asa niciuna din astea n o sa fie si ea la randul ei _isClassDef sau _isFunc
+            if (!leftVal.hasSameTypeAs(rightVal)) {
+                return false;
+            }
+        }
+    }
+
+    if (_type == CUSTOM) { // class instances doar, ca restul specialelor le am tratat mai sus
+        return _type == sym.type() and _className == sym._className;
+    }
+
+    return true;
+}
+
+
+// --- SymbolTable ---
+
+
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     // momentan atat
-    out << typeToStr(sd._type) << ' ' << sd.name();
+    if (!sd._isFunc) {
+        out << ((sd._isConst == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd._type) + (sd._type != CUSTOM ? "" : " " + sd._className ) << ", name: " << sd.name() << ", in scope " << sd.scope();
+    }
+    else {
+        out << "Function with type: " << typeToStr(sd._type) << ", name: " << sd.name() << ", in scope " << sd.scope();
+    }
     return out;
 }
 
