@@ -48,9 +48,12 @@ class SymbolTable symbolTable;
 %destructor { free($$); } <stringValue>
 %destructor { free($$); } <idValue>
 
-%nonassoc LEQ GEQ LT GT EQ NEQ
-%left PLUS MINUS DIV MUL ANDB ORB POW
+%left LEQ GEQ LT GT EQ NEQ
 %right NEGB
+%left ANDB ORB
+%left PLUS MINUS
+%left DIV MUL
+%left POW
 
 %start start_program
 %%
