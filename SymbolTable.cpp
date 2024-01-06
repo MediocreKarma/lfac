@@ -24,7 +24,7 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     _scope = scope;
     _name = name;
     _type = t;
-    _isArray = size > 0;
+    _isArray = (size > 0); // e mai usor de citit daca pui o expr de genu n paranteza
     if (_isArray) {
         _value.resize(size, SymbolData(scope, "", t, f));
     }
@@ -51,11 +51,13 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
 
 SymbolData::SymbolData(const SymbolData& rhs) :
     _name(rhs._name), _type(rhs._type), _scope(rhs._scope), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _value(rhs._value) {}
+    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _isArray(rhs._isArray),
+    _isClassDef(rhs._isClassDef), _className(rhs._className), _value(rhs._value) {}
 
 SymbolData::SymbolData(SymbolData&& rhs) :
     _name(std::move(rhs._name)), _type(rhs._type), _scope(std::move(rhs._scope)), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _value(std::move(rhs._value)) {}
+    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _isArray(rhs._isArray),
+    _isClassDef(rhs._isClassDef), _className(std::move(rhs._className)),_value(rhs._value) {}
 
 SymbolData& SymbolData::operator = (const SymbolData& rhs) {
     _name = rhs._name;

@@ -27,7 +27,7 @@ class My mine!!!!!!!!!!
 string str!!
 char cha!!
 bool b!!
-const char c := 'a'!!!!
+const char constC := 'a'!!!!
 ENDGLOBALS
 
 FUNCTIONS
@@ -47,11 +47,24 @@ def {
 ENDFUNCTIONS
 
 fn int main() { 
+
+
     x := 6 + 5!!
+    
+
+    do : {
+        Eval(3)!!
+    }
+    while 3 + 5 < 5!!
+
+    Eval(3+5 < 5)!!
+
 
     y := (6 - 243)/ 15 + 3!!
 
     b := true !!!!
+
+    c[2] := '5'!!
 
     cha := '\n'!!
 
@@ -64,18 +77,19 @@ fn int main() {
         Eval(483)!!
     }
 
+    float y!!
+
     test_test := 1!!
 
     str := "aa"!!!!!!
     class My yours!!
-
-    randomFunctionThatDoesntExistYet(a, b, c)!!
 
     for x := 5 !! x < 23 !! x := x + 1 : {
         Eval(2 + 5)!!
     }
 
     while x < 25 : {
+        Eval(7 < 4) !!
         TypeOf(7 < 4) !!
     }
 
@@ -93,7 +107,6 @@ fn int main() {
     if (b) : {
         Eval(-10)!!
     }
-    {
-        a++!!
-    }
+    y := 25.4!!
+    Eval(y)!!
 }

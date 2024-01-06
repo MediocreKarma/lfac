@@ -26,17 +26,21 @@ public:
     AST(bool literal);
     AST(const SymbolData& symbol);
 
-    // assignment as an operator?
+    // assignment as an operator.. ar trebui doar sa setam gen value ul symbol data ului la value ul din expr. ...nu?
     AST(SymbolData& symbol, const AST& left);
 
     std::string typeStr() const; // pt typeof 
     std::string valueStr() const; // pt eval
+
+    TypeNms::Type type() const {
+        return _type; //todo: move to cpp
+    }
 private:
-    TypeNms::Type type;
-    SymbolData::Value value;
+    TypeNms::Type _type;
+    SymbolData::Value _value;
     // nu stiu cum face yacc scope-urile
     // nu cred ca pot pune referinta aici
-    const AST* left = nullptr, *right = nullptr;
+    const AST *_left = nullptr, *_right = nullptr;
 };
 
 #endif

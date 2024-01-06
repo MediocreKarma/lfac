@@ -1,60 +1,61 @@
 #include "AST.h"
 
 AST::~AST() {
-    delete left;
-    delete right;
+    delete _left;
+    delete _right;
 }
 
 AST::AST(const AST* other) {
     using namespace TypeNms;
-    type = other->type;
-    value = other->value;
-    left = other;
+    _type = other->_type;
+    _value = other->_value;
+    _left = other;
 }
 
 AST::AST(int literal) {
     using namespace TypeNms;
-    type = INT;
-    value = literal;
+    _type = INT;
+    _value = literal;
 }
 
 AST::AST(float literal) {
     using namespace TypeNms;
-    type = FLOAT;
-    value = (float)literal;
+    _type = FLOAT;
+    _value = (float)literal;
 }
 
 AST::AST(bool literal) {
     using namespace TypeNms;
-    type = FLOAT;
-    value = literal;
+    _type = FLOAT;
+    _value = literal;
 }
 
 AST::AST(const char* literal) {
     using namespace TypeNms;
-    type = STRING;
-    value = std::string(literal);
+    _type = STRING;
+    _value = std::string(literal);
 }
 
 AST::AST(char literal) {
     using namespace TypeNms;
-    type = CHAR;
-    value = literal;
+    _type = CHAR;
+    _value = literal;
 }
 
 AST::AST(const SymbolData& symbol) {
-    type = symbol.type();
+    _type = symbol.type();
+    // si cu value ul ce facem... ?
 }
 
 AST::AST(Operation::UnaryOp op, AST*& _left) :
-    type(), value(), left(_left) {
+    _type(), _value(), _left(_left) {
     
     using namespace TypeNms;
     using enum Operation::UnaryOp;
 
-    type = left->type;
+    _type = _left->_type;
 
-    if (type != BOOL) {
+    if (_type != BOOL) {
         // yyerror
     }
     if (!Operation::booleanOperator(op)) {
@@ -62,16 +63,16 @@ AST::AST(Operation::UnaryOp op, AST*& _left) :
     }
     switch(op) {
         case NEGB:
-            value = !std::get<bool>(left->value); 
+            _value = !std::get<bool>(_left->_value); 
             break;
     }
 }
 
 AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
-    type(), value(), left(_left), right(_right) {
+    _type(), _value(), _left(_left), _right(_right) {
 
     // todo: caz special pt minus ceva
-    if (left == nullptr or right == nullptr) {
+    if (_left == nullptr or _right == nullptr) {
         throw std::runtime_error("Cannot construct binary-op AST with null values");
     }
 
@@ -79,94 +80,91 @@ AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
     using enum Operation::BinaryOp;
 
     // no type casting
-    if (left->type != right->type) {
-        std::string error = 
+    if (_left->_type != _right->_type) {
+        throw std::runtime_error(std::string(
             "Binary operation using " +
-            typeToStr(left->type) + 
+            typeToStr(_left->_type) + 
             " and " +
-            typeToStr(right->type) +
-            " is not allowed!"; 
-        // yyerror is not yet here, kinda sucks?
-        // yyerror(error.c_str());
+            typeToStr(_right->_type) +
+            " is not allowed!"
+        ).c_str());
     }
-    if (left->value.index() != right->value.index()) {
-        // disaster
-        exit(1);
+    if (_left->_value.index() != _right->_value.index()) {
+        throw std::runtime_error("std::variant indexes not matching in AST value index evaluation");
     }
-    type = left->type;
-    if (type == BOOL) {
+    _type = _left->_type;
+    if (_type == BOOL) {
         if (Operation::booleanOperator(op)) {
             switch (op) {
                 case ORB:
-                    value = std::get<bool>(left->value) || std::get<bool>(right->value);
+                    _value = std::get<bool>(_left->_value) || std::get<bool>(_right->_value);
                     break;
                 case ANDB:
-                    value = std::get<bool>(left->value) && std::get<bool>(right->value);
+                    _value = std::get<bool>(_left->_value) && std::get<bool>(_right->_value);
                     break;
                 case EQ:
-                    value = std::get<bool>(left->value) == std::get<bool>(right->value);
+                    _value = std::get<bool>(_left->_value) == std::get<bool>(_right->_value);
                     break;
                 case NEQ:
-                    value = std::get<bool>(left->value) != std::get<bool>(right->value);
+                    _value = std::get<bool>(_left->_value) != std::get<bool>(_right->_value);
                     break;
-                default: /* unreachable */;
+                default: throw std::runtime_error("Invalid boolean operator");;
             }
             // good
             return;
         }
-        std::string error = "Invalid operation for boolean type";
-        // yyerror
+        throw std::runtime_error("Invalid operation for boolean type");
     }
     else {
         if (Operation::conversionOperator(op)) {
             switch (op) {
                 case LT:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) < std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) < std::get<float>(right->value); break;
-                        case STRING: value = std::get<std::string>(left->value) < std::get<std::string>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) < std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) < std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) < std::get<float>(_right->_value); break;
+                        case STRING: _value = std::get<std::string>(_left->_value) < std::get<std::string>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) < std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
-                    type = BOOL;
+                    _type = BOOL;
                     break;
                 case LEQ:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) <= std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) <= std::get<float>(right->value); break;
-                        case STRING: value = std::get<std::string>(left->value) <= std::get<std::string>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) <= std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) <= std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) <= std::get<float>(_right->_value); break;
+                        case STRING: _value = std::get<std::string>(_left->_value) <= std::get<std::string>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) <= std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
-                    type = BOOL;
+                    _type = BOOL;
                     break;
                 case GT:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) > std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) > std::get<float>(right->value); break;
-                        case STRING: value = std::get<std::string>(left->value) > std::get<std::string>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) > std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) > std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) > std::get<float>(_right->_value); break;
+                        case STRING: _value = std::get<std::string>(_left->_value) > std::get<std::string>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) > std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
-                    type = BOOL;
+                    _type = BOOL;
                     break;
                 case GEQ:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) >= std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) >= std::get<float>(right->value); break;
-                        case STRING: value = std::get<std::string>(left->value) >= std::get<std::string>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) >= std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) >= std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) >= std::get<float>(_right->_value); break;
+                        case STRING: _value = std::get<std::string>(_left->_value) >= std::get<std::string>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) >= std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
-                    type = BOOL;
+                    _type = BOOL;
                     break;
                 case EQ:
-                    value = left->value == right->value;
-                    type = BOOL;
+                    _value = _left->_value == _right->_value;
+                    _type = BOOL;
                 case NEQ:
-                    value = left->value != right->value;
-                    type = BOOL;
-                default: /* unreachable */;
+                    _value = _left->_value != _right->_value;
+                    _type = BOOL;
+                default: throw std::runtime_error("Invalid conversion operator");
             }
             // good
             return;
@@ -174,43 +172,43 @@ AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
         if (Operation::expressionOperator(op)) {
             switch (op) {
                 case PLUS:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) + std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) + std::get<float>(right->value); break;
-                        case STRING: value = std::get<std::string>(left->value) + std::get<std::string>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) + std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) + std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) + std::get<float>(_right->_value); break;
+                        case STRING: _value = std::get<std::string>(_left->_value) + std::get<std::string>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) + std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MINUS:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) - std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) - std::get<float>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) - std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) - std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) - std::get<float>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) - std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MULT:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) * std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) * std::get<float>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) * std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) * std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) * std::get<float>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) * std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case DIV:
-                    switch (type) {
-                        case INT: value = std::get<int>(left->value) / std::get<int>(right->value); break;
-                        case FLOAT: value = std::get<float>(left->value) / std::get<float>(right->value); break;
-                        case CHAR: value = std::get<char>(left->value) / std::get<char>(right->value); break;
+                    switch (_type) {
+                        case INT: _value = std::get<int>(_left->_value) / std::get<int>(_right->_value); break;
+                        case FLOAT: _value = std::get<float>(_left->_value) / std::get<float>(_right->_value); break;
+                        case CHAR: _value = std::get<char>(_left->_value) / std::get<char>(_right->_value); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case POW:
-                    switch (type) {
-                        case INT: value = static_cast<int>(std::pow(std::get<int>(left->value), std::get<int>(right->value))); break;
-                        case FLOAT: value = static_cast<float>(std::pow(std::get<float>(left->value), std::get<float>(right->value))); break;
-                        case CHAR: value = static_cast<char>(std::pow(std::get<char>(left->value), std::get<char>(right->value))); break;
+                    switch (_type) {
+                        case INT: _value = static_cast<int>(std::pow(std::get<int>(_left->_value), std::get<int>(_right->_value))); break;
+                        case FLOAT: _value = static_cast<float>(std::pow(std::get<float>(_left->_value), std::get<float>(_right->_value))); break;
+                        case CHAR: _value = static_cast<char>(std::pow(std::get<char>(_left->_value), std::get<char>(_right->_value))); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
@@ -223,23 +221,27 @@ AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
 
 
 std::string AST::typeStr() const {
-    return TypeNms::typeToStr(type);
+    using namespace TypeNms;
+    if (_type == CUSTOM) {
+        return "Custom type";
+    }
+    return TypeNms::typeToStr(_type);
 }
 
 std::string AST::valueStr() const {
     using namespace TypeNms;
-    switch(type) {
+    switch(_type) {
         case INT :
-            return std::to_string(std::get<int>(value));
+            return std::to_string(std::get<int>(_value));
         case FLOAT:
-            return std::to_string(std::get<float>(value));
+            return std::to_string(std::get<float>(_value));
         case BOOL:
-            return std::to_string(std::get<bool>(value));
+            return (std::get<bool>(_value) == 1) ? "true" : "false";
         case CHAR:
-            return std::to_string(std::get<char>(value));
+            return std::to_string(std::get<char>(_value));
         case STRING:
-            return std::get<std::string>(value);
+            return std::get<std::string>(_value);
         default:
-            throw std::invalid_argument("cred ca doar astea se poate");
+            return "Non-base-type (unreadable value)";
     }
 }
