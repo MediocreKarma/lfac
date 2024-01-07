@@ -54,18 +54,34 @@ AST::AST(Operation::UnaryOp op, AST*& _left) :
     using namespace TypeNms;
     using enum Operation::UnaryOp;
 
-    _type = _left->_type;
+    _type = _left->type();
+    if (Operation::booleanOperator(op)) {
+        switch (op) {
+            case NEGB:
+                if (!std::holds_alternative<bool>(_left->_value)) {
+                    throw std::invalid_argument("Cannot apply negation operator to a non-boolean value");
+                }
+                _value = !std::get<bool>(_left->_value);
+        }
+    }
+    else if (Operation::expressionOperator(op)) {
+        switch (op) {
+            case NEG:
+                switch(type()) {
+                    case INT:
+                        _value = -std::get<int>(_left->_value);
+                        break;
+                    case FLOAT:
+                        _value = -std::get<float>(_left->_value);
+                        break;
+                    case CHAR:
+                        _value = -std::get<char>(_left->_value);
+                        break;
+                    default:
+                        throw std::invalid_argument("Cannot apply unary minus operator to a non-numeric value");
+                } 
 
-    if (_type != BOOL) {
-        // yyerror
-    }
-    if (!Operation::booleanOperator(op)) {
-        // yyerror
-    }
-    switch(op) {
-        case NEGB:
-            _value = !std::get<bool>(_left->_value); 
-            break;
+        }
     }
 }
 
@@ -162,9 +178,11 @@ AST::AST(Operation::BinaryOp op, AST*& _left, AST*& _right) :
                 case EQ:
                     _value = _left->_value == _right->_value;
                     _type = BOOL;
+                    break;
                 case NEQ:
                     _value = _left->_value != _right->_value;
                     _type = BOOL;
+                    break;
                 default: throw std::runtime_error("Invalid conversion operator");
             }
             // good

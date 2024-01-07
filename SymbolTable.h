@@ -25,7 +25,7 @@ namespace Scope { // scope utils
 class SymbolData {
 public:
 
-    using Value = std::variant<int, float, char, std::string, bool, SymbolData>;
+    using Value = std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>;
 
     enum Flag {
         Variable, Constant, Function, Class // eu zic ca trebe
@@ -49,6 +49,12 @@ public:
     TypeNms::Type type() const;
     Value value() const;
 
+    bool isFunc() const;
+    bool isArray() const;
+    bool isInit() const;
+    bool isConst() const;
+
+
     SymbolData* member(const std::string& id);
     SymbolData* member(size_t index);
 
@@ -59,6 +65,7 @@ public:
     // cu siguranta astea functioneaza cum trebuie by default
     friend bool operator == (const SymbolData& a, const SymbolData& b) = default;
     friend bool operator != (const SymbolData& a, const SymbolData& b) = default;
+    friend bool sameType(const SymbolData& a, const SymbolData&b);
 private:
 
     std::string _name;
@@ -74,12 +81,9 @@ private:
     // ca ne trebuie cand afisam type ul in symboltable
     std::string _className;
 
-    std::vector<Value> _value;
-
-    using base_var = std::variant<int, bool, char, std::string, float>;
+    Value _value;
 
     bool assignable(const Value& _value);
-    bool assignable(const std::vector<Value>& _value);
 };
 
 

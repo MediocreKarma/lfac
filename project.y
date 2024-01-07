@@ -41,19 +41,19 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign identifier
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment
 
 // am gasit asta pe net. sper sa nu ne strice mai tare
 // daca te enerveaza warningurile legate de unused value da le comment
-%destructor { free($$); } <stringValue>
-%destructor { free($$); } <idValue>
+// %destructor { free($$); } <stringValue>
+// %destructor { free($$); } <idValue>
 
-%left LEQ GEQ LT GT EQ NEQ
-%right NEGB
 %left ANDB ORB
+%left LEQ GEQ LT GT EQ NEQ
 %left PLUS MINUS
 %left DIV MUL
 %left POW
+%right NEGB
 
 %start start_program
 %%
@@ -299,7 +299,6 @@ sep_stmt  : assignment {}
           | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->valueStr() << "\033[0m\n";}
           | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
           | DO ':' block WHILE expr {std::cout << "here\n";} 
-          | expr { /*kinda just ignore*/}
 
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
@@ -312,6 +311,9 @@ if_expr   : IF expr { /* verify expr */ } ':' block
 
 assignment: identifier ASSIGN expr {delete $3;} // rip
           ;
+
+function_call  : ID '(' expr_list ')' {}
+               ;
         
 initializer_list : '{' expr_list '}'
 
@@ -337,18 +339,19 @@ expr : '(' expr ')' {$$ = new AST($2);}
      | expr  LEQ  expr { $$ = new AST(Operation::BinaryOp::LEQ, $1, $3);}
      | expr  GT   expr { $$ = new AST(Operation::BinaryOp::GT, $1, $3);}
      | expr  GEQ  expr { $$ = new AST(Operation::BinaryOp::GEQ, $1, $3);}
-     |      MINUS expr { $$ = new AST(Operation::BinaryOp::MINUS, $2, $2);}
-     | INCREMENT identifier {/*tu le ai fct tu te ocupi*/}
-     | DECREMENT identifier {}
-     | identifier INCREMENT {}
-     | identifier DECREMENT {}
+     |      MINUS expr { $$ = new AST(Operation::UnaryOp::NEG, $2);}
+     // | INCREMENT identifier {/*tu le ai fct tu te ocupi*/}
+     // | DECREMENT identifier {}
+     // | identifier INCREMENT {}
+     // | identifier DECREMENT {}
      | INTVAL {  std::cout << "Int Literal: " << $1 << std::endl;  $$ = new AST((int)$1); } 
      | FLOATVAL { std::cout << "Float Literal: " << $1 << std::endl; $$ = new AST((float)$1); } 
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; $$ = new AST((bool)$1); }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1); }
      | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1); }
-     | identifier { /* TEMPORAR!!!!!! todo: change */ $$ = new AST((int)0);}
-     | ID '(' expr_list ')' {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
+     | assignment
+     | identifier { /* TEMPORAR!!!!!! todo: change */ $$ = new AST($1);}
+     | function_call {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
      ;
 
 %%

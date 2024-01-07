@@ -26,7 +26,7 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     _type = t;
     _isArray = (size > 0); // e mai usor de citit daca pui o expr de genu n paranteza
     if (_isArray) {
-        _value.resize(size, SymbolData(scope, "", t, f));
+        _value = std::vector<SymbolData>(size, SymbolData(scope, "", t, f));
     }
     
     _isInit = false;
@@ -89,7 +89,7 @@ SymbolData& SymbolData::assign(const Value& val) {
     }
     else {
         _isInit = true;
-        _value.emplace_back(val);
+        _value = val;
     }
     return *this;
 }
@@ -107,41 +107,10 @@ bool SymbolData::assignable(const Value& val) {
         case BOOL:
             return std::holds_alternative<bool>(val);
         case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<SymbolData>(val);
+            return std::holds_alternative<std::vector<SymbolData>>(val);
     }
     // throw sau yyerror si return false; nu stiu inca
     if (_isArray) {
-        return false;
-    }
-    if (_isConst) {
-        return false;
-    }
-    if (_isFunc) {
-        return false;
-    }
-    return true;
-}
-
-bool SymbolData::assignable(const std::vector<Value>& value) {
-    if (_value.size() != value.size()) {
-        return false;
-    }
-    switch (_type) {
-        case INT:
-            return std::holds_alternative<int>(_value[0]);
-        case FLOAT:
-            return std::holds_alternative<float>(_value[0]);
-        case CHAR:
-            return std::holds_alternative<char>(_value[0]);
-        case STRING:
-            return std::holds_alternative<std::string>(_value[0]);
-        case BOOL:
-            return std::holds_alternative<bool>(_value[0]);
-        case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<SymbolData>(_value[0]);
-    }
-    // throw sau yyerror si return false; nu stiu inca
-    if (!_isArray) {
         return false;
     }
     if (_isConst) {
@@ -157,7 +126,7 @@ SymbolData& SymbolData::addSymbol(const SymbolData& symbol) {
     if (!_isFunc and !_isClassDef) {
         throw std::runtime_error("Cannot add symbol to non-class, non-function symbol");
     }
-    _value.push_back(SymbolData(symbol));
+    std::get<std::vector<SymbolData>>(_value).push_back(SymbolData(symbol));
     return *this;
 }
 
@@ -174,10 +143,25 @@ TypeNms::Type SymbolData::type() const {
 }
 
 SymbolData::Value SymbolData::value() const {
-    // TEMPORAR
-    // TODO: fix
-    return _value[0];
+    return _value;
 }
+
+bool SymbolData::isFunc() const {
+    return _isFunc;
+}
+
+bool SymbolData::isArray() const {
+    return _isArray;
+}
+
+bool SymbolData::isInit() const {
+    return _isInit;
+}
+
+bool SymbolData::isConst() const {
+    return _isConst;
+}
+
 
 // for class defs/instances
 SymbolData* SymbolData::member(const std::string& id) {
@@ -187,12 +171,11 @@ SymbolData* SymbolData::member(const std::string& id) {
     if (_type != TypeNms::Type::CUSTOM) {
         return nullptr;
     }
-    for (Value& val : _value) {
-        if (std::holds_alternative<SymbolData>(val) == false) {
-            // vals of id are not symbol data
-            return nullptr;
-        }        
-        SymbolData& storedSymbol = std::get<SymbolData>(val);
+    if (std::holds_alternative<std::vector<SymbolData>>(value()) == false) {
+        // vals of id are not symbol data
+        return nullptr;
+    }    
+    for (SymbolData& storedSymbol : std::get<std::vector<SymbolData>>(value())) {
         if (storedSymbol.name() == id) {
             return &storedSymbol;
         }
@@ -202,49 +185,41 @@ SymbolData* SymbolData::member(const std::string& id) {
 
 SymbolData* SymbolData::member(const size_t index) {
     if (!_isArray) {
-        return nullptr;
+        throw std::invalid_argument("Cannot apply index operator to non-array types");
     }
-    if (index < _value.size()) {
-        return std::get_if<SymbolData>(&_value[index]);
+    std::vector<SymbolData>* vec = std::get_if<std::vector<SymbolData>>(&_value);
+    if (index >= vec->size()) {
+        throw std::invalid_argument("Index out of bounds");
     }
-    return nullptr;
+    return &(*vec)[index];
 }
 
 bool SymbolData::hasSameTypeAs(const SymbolData& sym) const {
-    if (_type != CUSTOM and !_isFunc) { // base variable
-        return _type == sym.type(); 
-    }
-
-    if (_isArray) { // any type of array
-        return _type == sym.type() and _value.size() == sym._value.size();
-    }
-
-    if (_isFunc or _isClassDef) {
-        // daca are acelasi return value si acelasi nr de parametri
-        if (_type != sym.type() or _value.size() != sym._value.size()) {
-            return false;
-        } 
-        for (size_t i = 0; i < _value.size(); ++i) {
-            const auto& leftVal = std::get<SymbolData>(_value[i]);
-            const auto& rightVal = std::get<SymbolData>(sym._value[i]);
-
-            // permitem "recursion" ca si asa niciuna din astea n o sa fie si ea la randul ei _isClassDef sau _isFunc
-            if (!leftVal.hasSameTypeAs(rightVal)) {
-                return false;
-            }
-        }
-    }
-
-    if (_type == CUSTOM) { // class instances doar, ca restul specialelor le am tratat mai sus
-        return _type == sym.type() and _className == sym._className;
-    }
-
-    return true;
+    return sameType(*this, sym);
 }
 
-
-// --- SymbolTable ---
-
+bool sameType(const SymbolData& a, const SymbolData& b) {
+    if (a.type() != CUSTOM and !a.isFunc()) { // base variable
+        return a.type() == b.type(); 
+    }
+    if (a.type() != b.type()) {
+        return false;
+    }
+    const auto& aData = std::get<std::vector<SymbolData>>(a.value());
+    const auto& bData = std::get<std::vector<SymbolData>>(b.value());
+    if (aData.size() != bData.size()) {
+        return false;
+    }
+    if (a.isArray() != b.isArray() || a.isFunc() != b.isFunc()) { // any type of array
+        return false;
+    }
+    for (size_t i = 0; i < aData.size(); ++i) {
+        if (!sameType(aData[i], bData[i])) {
+            return false;
+        }
+    }
+    return true;
+}
 
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     // momentan atat
@@ -256,6 +231,8 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     }
     return out;
 }
+
+// --- SymbolTable ---
 
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
     _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size, className));

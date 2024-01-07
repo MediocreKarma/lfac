@@ -1,0 +1,3 @@
+fn int main() { 
+    Eval(-10 * 5)!!
+}
