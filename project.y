@@ -30,7 +30,7 @@ class SymbolTable symbolTable;
      class SymbolData* symbolValue;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
-%token SEP ASSIGN INCREMENT DECREMENT DEF DECL
+%token SEP ASSIGN INCREMENT DECREMENT DEF DECL MEMBERS
 %token WHILE FOR IF ELSE DO RETURN EVAL TYPEOF
 %token CLASS CONST ARRAY FN SELF
 %token<idValue> TYPE ID
@@ -42,12 +42,14 @@ class SymbolTable symbolTable;
 %type<astNode> expr
 %type<list> list_param fn_param
 %type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment
+%type<list> class_members class_members1
 
 // am gasit asta pe net. sper sa nu ne strice mai tare
 // daca te enerveaza warningurile legate de unused value da le comment
 // %destructor { free($$); } <stringValue>
 // %destructor { free($$); } <idValue>
 
+%right ASSIGN
 %left ANDB ORB
 %left LEQ GEQ LT GT EQ NEQ
 %left PLUS MINUS
@@ -88,17 +90,50 @@ classes_block: classes_block class_definition
              | /* epsilon */
              ;
 
-class_definition: CLASS ID '{' {
+class_definition:   CLASS ID '{' {
                          if (symbolTable.findClass($2) != nullptr) {
                               yyerror(std::string("Class ") + $2 + " already defined");
                          }
                          symbolTable.addClass($2);
                          symbolTable.enterScope($2);
-                    } DECL '{' class_members '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
+                    } MEMBERS '{' class_members '}' {
+                         SymbolData* classDef = symbolTable.findClass($2);
+                         SymbolList* ptr = $7;
+                         while (ptr != nullptr) {
+                              classDef->addSymbol(*ptr->symbol);
+                              SymbolList* next = ptr->next;
+                              delete ptr;
+                              ptr = next;
+                         }
+                         std::cout << *classDef << '\n';
+                    } 
+                    DECL '{' functions_decl '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
 
-class_members: decl SEP class_members
-             | /* epsilon */
-             ;
+class_members  : class_members1 { $$ = $1; }
+               | /* epsilon */ { $$ = nullptr; }
+               ;
+
+class_members1 : decl_assign SEP {
+                    $$ = new SymbolList;
+                    $$->next = nullptr;
+                    $$->symbol = $1;
+               }
+               | decl_assign SEP class_members1 {
+                    $$ = new SymbolList;
+                    $$->next = $3;
+                    $$->symbol = $1;
+               }
+               | decl_only SEP {
+                    $$ = new SymbolList;
+                    $$->next = nullptr;
+                    $$->symbol = $1;
+               }
+               | decl_only SEP class_members1 {
+                    $$ = new SymbolList;
+                    $$->next = $3;
+                    $$->symbol = $1;
+               }
+               ;
 
 // no sep needed when blocks are used
 class_methods_def   : function_definition class_methods_def {}
@@ -236,13 +271,16 @@ decl_only: TYPE ID {
                     yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists");
                }
                // check if class is defined
-               if (symbolTable.findClass($2) == nullptr) {
+               SymbolData* classSymbol = symbolTable.findClass($2);
+               if (classSymbol == nullptr) {
                     yyerror(std::string("Cannot instantiate symbol ") + $3 + " of non-defined class type " + $2);
                }
-               symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable, 0, $2); // added class name
+               // copy of class template
+               SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $3);
+               std::cout << symbol << '\n';
+               symbolTable.add(symbol);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
-
 
 // todo: DON'T FORGET TO MAKE EXPR WORK
 decl_assign    : TYPE ID ASSIGN expr {
@@ -251,6 +289,7 @@ decl_assign    : TYPE ID ASSIGN expr {
                     }
                     symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $2);
+                    $$->assign($4->symbol());
                }
                | CONST TYPE ID ASSIGN expr {
                     if(symbolTable.contains($3)) {
@@ -349,8 +388,8 @@ expr : '(' expr ')' {$$ = new AST($2);}
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; $$ = new AST((bool)$1); }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1); }
      | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1); }
-     | assignment
-     | identifier { /* TEMPORAR!!!!!! todo: change */ $$ = new AST($1);}
+     | assignment { $$ = new AST(*$1); }
+     | identifier { $$ = new AST(*$1);}
      | function_call {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
      ;
 

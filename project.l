@@ -12,6 +12,7 @@
 "class" {return CLASS;}
 "array" {return ARRAY;}
 "self" {return SELF;}
+"members" {return MEMBERS;}
 "fn" {return FN;}
 "decl" {return DECL;}
 "def" {return DEF;}

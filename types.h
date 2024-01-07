@@ -1,5 +1,4 @@
-#ifndef _TYPES__
-#define _TYPES__
+#pragma once
 
 #include <string>
 #include <vector>
@@ -46,5 +45,3 @@ namespace Operation {
 
     bool conversionOperator(BinaryOp op);
 }
-
-#endif 

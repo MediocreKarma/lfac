@@ -1,5 +1,4 @@
-#ifndef _AST__
-#define _AST__
+#pragma once
 
 #include <iostream>
 #include <cmath>
@@ -15,10 +14,11 @@ public:
     // expr
     // nvm eu nu mai inteleg ce returneaza AST-urile astea...
     // cred ca defapt aveam vreo eroare tampita lol
-    AST(Operation::BinaryOp op, AST*& left, AST*& right);
-    AST(Operation::UnaryOp op, AST*& left);
+    AST(Operation::BinaryOp op, const AST* left, const AST* right);
+    AST(Operation::UnaryOp op, const AST* left);
 
-    AST(const AST* other);
+    // why is this needed?
+    //AST(const AST* other);
     AST(int literal);
     AST(float literal);
     AST(const char* literal);
@@ -26,21 +26,19 @@ public:
     AST(bool literal);
     AST(const SymbolData& symbol);
 
-    // assignment as an operator.. ar trebui doar sa setam gen value ul symbol data ului la value ul din expr. ...nu?
+    // assignment as an operator
     AST(SymbolData& symbol, const AST& left);
 
     std::string typeStr() const; // pt typeof 
     std::string valueStr() const; // pt eval
 
-    TypeNms::Type type() const {
-        return _type; //todo: move to cpp
-    }
+    const SymbolData::Value& value() const;
+
+    const SymbolData& symbol() const;
+
 private:
-    TypeNms::Type _type;
-    SymbolData::Value _value;
+    SymbolData _symbol;
     // nu stiu cum face yacc scope-urile
     // nu cred ca pot pune referinta aici
     const AST *_left = nullptr, *_right = nullptr;
 };
-
-#endif

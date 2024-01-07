@@ -1,4 +1,5 @@
 #include "SymbolTable.h"
+#include "AST.h"
 
 using namespace TypeNms;
 
@@ -28,7 +29,6 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     if (_isArray) {
         _value = std::vector<SymbolData>(size, SymbolData(scope, "", t, f));
     }
-    
     _isInit = false;
     switch (f) {
         case Constant:
@@ -36,9 +36,11 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
             break;
         case Function:
             _isFunc = true;
+            _value = std::vector<SymbolData>();
             break;
         case Class:
             _isClassDef = true;
+            _value = std::vector<SymbolData>();
             break;
     }
     if (t == CUSTOM) {
@@ -49,84 +51,124 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     }
 }
 
-SymbolData::SymbolData(const SymbolData& rhs) :
-    _name(rhs._name), _type(rhs._type), _scope(rhs._scope), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _isArray(rhs._isArray),
-    _isClassDef(rhs._isClassDef), _className(rhs._className), _value(rhs._value) {}
+SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const Value& val) :
+    SymbolData(scope, name, t, f) {
+    _value = val;
+}
 
-SymbolData::SymbolData(SymbolData&& rhs) :
-    _name(std::move(rhs._name)), _type(rhs._type), _scope(std::move(rhs._scope)), _isInit(rhs._isInit), 
-    _isConst(rhs._isConst), _isFunc(rhs._isFunc), _isArray(rhs._isArray),
-    _isClassDef(rhs._isClassDef), _className(std::move(rhs._className)),_value(rhs._value) {}
-
-SymbolData& SymbolData::operator = (const SymbolData& rhs) {
-    _name = rhs._name;
-    _type = rhs._type;
-    _scope = rhs._scope;
-    _isInit = rhs._isInit;
-    _isConst = rhs._isConst;
-    _isArray = rhs._isArray;
-    _isFunc = rhs._isFunc;
-    _value = rhs._value;
+SymbolData& SymbolData::setType(TypeNms::Type type) {
+    _type = type;
     return *this;
 }
 
-SymbolData& SymbolData::operator = (SymbolData&& rhs) {
-    _name = std::move(rhs._name);
-    _type = rhs._type;
-    _scope = std::move(rhs._scope);
-    _isInit = rhs._isInit;
-    _isConst = rhs._isConst;
-    _isArray = rhs._isArray;
-    _isFunc = rhs._isFunc;
-    _value = std::move(rhs._value);
+SymbolData& SymbolData::assign(const SymbolData& symbol) {
+    if (sameType(*this, symbol) == false) {
+        std::string from  = TypeNms::typeToStr(symbol.type());
+        std::string to    = TypeNms::typeToStr(type());
+        size_t thisSize   = std::get<std::vector<SymbolData>>(value()).size();
+        size_t symbolSize = std::get<std::vector<SymbolData>>(symbol.value()).size();
+        if (type() == CUSTOM) {
+            to += ' ' + className();
+        }
+        if (symbol.type() == CUSTOM) {
+            from += ' ' + symbol.className();
+        }
+        if (isArray()) {
+            from += "[" + std::to_string(thisSize) + "]";
+        }
+        if (symbol.isArray()) {
+            to += "[" + std::to_string(symbolSize) + "]";
+        }
+        throw std::runtime_error("Cannot assign type: " + from + " to type: " + to);
+    }
+    _isInit = true;
+    _value = symbol.value();
     return *this;
 }
 
 SymbolData& SymbolData::assign(const Value& val) {
-    if (!assignable(val)) { 
-        throw std::invalid_argument("Value unassignable");
-    }
-    else {
-        _isInit = true;
-        _value = val;
-    }
+    throwWhenUnassignable(val);
+    _isInit = true;
+    _value = val;
     return *this;
 }
 
-bool SymbolData::assignable(const Value& val) {
-    switch (_type) {
-        case INT:
-            return std::holds_alternative<int>(val);
-        case FLOAT:
-            return std::holds_alternative<float>(val);
-        case CHAR:
-            return std::holds_alternative<char>(val);
-        case STRING:
-            return std::holds_alternative<std::string>(val);
-        case BOOL:
-            return std::holds_alternative<bool>(val);
-        case CUSTOM: // mai multe verificari aici ?
-            return std::holds_alternative<std::vector<SymbolData>>(val);
+void SymbolData::throwWhenUnassignable(const Value& val) {
+    if (isConst()) {
+        throw std::runtime_error("Cannot assign to constant variable!");
     }
-    // throw sau yyerror si return false; nu stiu inca
-    if (_isArray) {
-        return false;
+    if (isFunc()) {
+        throw std::runtime_error("Cannot assign to function!");
     }
-    if (_isConst) {
-        return false;
+    std::string valueType = "";
+    if (std::holds_alternative<int>(val)) {
+        if (type() == INT && isArray() == false) {
+            return;
+        }
+        valueType = TypeNms::typeToStr(INT);
     }
-    if (_isFunc) {
-        return false;
+    else if (std::holds_alternative<float>(val)) {
+        if (type() == FLOAT && isArray() == false) {
+            return;
+        }
+        valueType = TypeNms::typeToStr(FLOAT);
     }
-    return true;
+    else if (std::holds_alternative<char>(val)) {
+        if (type() == CHAR && isArray() == false) {
+            return;
+        }
+        valueType = TypeNms::typeToStr(CHAR);
+    }
+    else if (std::holds_alternative<bool>(val)) {
+        if (type() == BOOL && isArray() == false) {
+            return;
+        }
+        valueType = TypeNms::typeToStr(BOOL);
+    }
+    else if (std::holds_alternative<std::string>(val)) {
+        if (type() == STRING && isArray() == false) {
+            return;
+        }
+        valueType = TypeNms::typeToStr(STRING);
+    }
+    if (valueType.empty() == false) {
+        if (isArray() == true) {
+            throw std::runtime_error("Cannot assign " + valueType + " to an array identifier");
+        }
+        if (type() != CUSTOM) {
+            throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type " + TypeNms::typeToStr(type()));
+        }
+        throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type Class " + className());
+    }
+    // initializer list
+    const std::vector<SymbolData>&  thisData = std::get<std::vector<SymbolData>>(value());
+    const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
+    if (thisData.size() < otherData.size()) {
+        throw std::runtime_error("Initializer list has too many parameters");
+    }
+    if (isArray()) {
+        for (size_t i = 0; i < otherData.size(); ++i) {
+            if (!sameType(thisData[0], otherData[i])) {
+                throw std::runtime_error("Element " + std::to_string(i) + " of initializer list is of a different type");
+            }
+        }
+    }
+    else {
+        for (size_t i = 0; i < otherData.size(); ++i) {
+            if (!sameType(thisData[i], otherData[i])) {
+                if (isArray()) {
+                    throw std::runtime_error("Element " + std::to_string(i) + " of initializer list cannot be assigned to member " + thisData[i].name());
+                }
+            }
+        }
+    }
 }
 
 SymbolData& SymbolData::addSymbol(const SymbolData& symbol) {
     if (!_isFunc and !_isClassDef) {
         throw std::runtime_error("Cannot add symbol to non-class, non-function symbol");
     }
-    std::get<std::vector<SymbolData>>(_value).push_back(SymbolData(symbol));
+    std::get<std::vector<SymbolData>>(_value).push_back(symbol);
     return *this;
 }
 
@@ -142,8 +184,12 @@ TypeNms::Type SymbolData::type() const {
     return _type;
 }
 
-SymbolData::Value SymbolData::value() const {
+const SymbolData::Value& SymbolData::value() const {
     return _value;
+}
+
+std::string SymbolData::className() const {
+    return _className;
 }
 
 bool SymbolData::isFunc() const {
@@ -162,6 +208,17 @@ bool SymbolData::isConst() const {
     return _isConst;
 }
 
+SymbolData SymbolData::instantiateClass(const std::string& scope, const std::string& name) const {
+    if (!_isClassDef) {
+        throw std::invalid_argument("Cannot clone non-class_template");
+    }
+    SymbolData symbol(*this);
+    symbol._scope = scope;
+    symbol._name = name;
+    symbol._className = _className;
+    return symbol;
+}
+
 
 // for class defs/instances
 SymbolData* SymbolData::member(const std::string& id) {
@@ -175,7 +232,7 @@ SymbolData* SymbolData::member(const std::string& id) {
         // vals of id are not symbol data
         return nullptr;
     }    
-    for (SymbolData& storedSymbol : std::get<std::vector<SymbolData>>(value())) {
+    for (SymbolData& storedSymbol : std::get<std::vector<SymbolData>>(_value)) {
         if (storedSymbol.name() == id) {
             return &storedSymbol;
         }
@@ -221,10 +278,22 @@ bool sameType(const SymbolData& a, const SymbolData& b) {
     return true;
 }
 
+void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
+    for (const SymbolData& subSd : std::get<std::vector<SymbolData>>(sd.value())) {
+        out << '\n' << std::string(depth, '\t') << subSd;
+        if (subSd.type() == CUSTOM || sd.isArray()) {
+            printSubsymbol(out, subSd, depth + 1);
+        }
+    }
+}
+
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     // momentan atat
-    if (!sd._isFunc) {
-        out << ((sd._isConst == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd._type) + (sd._type != CUSTOM ? "" : " " + sd._className ) << ", name: " << sd.name() << ", in scope " << sd.scope();
+    if (!sd.isFunc()) {
+        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: " << sd.name() << ", in scope " << sd.scope();
+        if (sd.type() == CUSTOM || sd.isArray()) {
+            printSubsymbol(out, sd, 1);
+        } 
     }
     else {
         out << "Function with type: " << typeToStr(sd._type) << ", name: " << sd.name() << ", in scope " << sd.scope();
@@ -235,18 +304,24 @@ std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
 // --- SymbolTable ---
 
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
-    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), SymbolData(currentScope(), name, type, flag, size, className));
-    std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, size, className));
+    //std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
+    return *this;
+}
+
+SymbolTable& SymbolTable::add(const SymbolData& symbol) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), symbol.name()), std::make_unique<SymbolData>(symbol));
+    //std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), symbol.name()) + "\n";
     return *this;
 }
 
 SymbolTable& SymbolTable::addClass(const std::string& name) {
-    _classesTable.emplace(name, SymbolData(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0));
+    _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0, name));
     return *this;
 }
 
 SymbolTable& SymbolTable::remove(const SymbolData& data) {
-    std::cout << "Removed element " << data.scope() + data.name() << '\n';
+    //std::cout << "Removed element " << data.scope() + data.name() << '\n';
     _table.erase(data.scope() + data.name());
     return *this;
 }
@@ -257,7 +332,7 @@ bool SymbolTable::contains(const std::string& name) {
 
 void SymbolTable::print(std::ostream& out) {
     for (const auto& [path, smb] : _table) {
-        out << smb << '\n';
+        out << *smb << '\n';
     }
 }
 
@@ -273,24 +348,24 @@ void SymbolTable::enterAnonymousScope() {
     }
     std::string scope = std::to_string(i++);
     _currentScopeHierarchy.push_back(scope);
-    std::cout << "Current scope: " << currentScope() << '\n';
+    //std::cout << "Current scope: " << currentScope() << '\n';
 }
 
 // todo: specify if i'm entering a class scope or a fxn scope. We might need that info
 void SymbolTable::enterScope(const std::string& str) {
     _currentScopeHierarchy.push_back(str);
-    std::cout << "Current scope: " << currentScope() << "\n";
+    //std::cout << "Current scope: " << currentScope() << "\n";
 }
 
 void SymbolTable::exitScope() {
     _currentScopeHierarchy.pop_back();
-    std::cout << "Current scope: " << currentScope() << "\n";
+    //std::cout << "Current scope: " << currentScope() << "\n";
 }
 
 SymbolData* SymbolTable::find(const std::string& scopedName) {
     auto it = _table.find(scopedName);
     if (it != _table.end()) {
-        return &it->second;
+        return it->second.get();
     }
     return nullptr;
 }
@@ -301,7 +376,7 @@ SymbolData* SymbolTable::findId(const std::string& id) {
         scope += scopeAdd + "/";
         auto it = _table.find(scope + id);
         if (it != _table.end()) {
-            return &it->second;
+            return it->second.get();
         }
     }
     return nullptr;
@@ -310,7 +385,7 @@ SymbolData* SymbolTable::findId(const std::string& id) {
 SymbolData* SymbolTable::findClass(const std::string& name) {
     auto it = _classesTable.find(name);
     if (it != _classesTable.end()) {
-        return &it->second;
+        return it->second.get();
     }
     return nullptr;
 }

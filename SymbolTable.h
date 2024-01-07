@@ -1,5 +1,4 @@
-#ifndef _SYMBOL_TABLE__
-#define _SYMBOL_TABLE__
+#pragma once
 
 #include <iostream>
 #include <iterator>
@@ -9,6 +8,7 @@
 #include <string>
 #include <optional>
 #include <variant>
+#include <memory>
 
 #include "types.h"
 
@@ -22,6 +22,8 @@ namespace Scope { // scope utils
     bool encompassingScope(const std::string& active, const std::string& encompassing); 
 }
 
+class AST;
+
 class SymbolData {
 public:
 
@@ -31,32 +33,36 @@ public:
         Variable, Constant, Function, Class // eu zic ca trebe
     };
 
+    SymbolData() = default;
     SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0, const std::string& className = "");
-    SymbolData(const SymbolData&);
-    SymbolData(SymbolData&&);
-    SymbolData& operator = (const SymbolData&);
-    SymbolData& operator = (SymbolData&&);
+    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, const Value& value);
+    SymbolData(const SymbolData&) = default;
+    SymbolData(SymbolData&&) = default;
+    SymbolData& operator = (const SymbolData&) = default;
+    SymbolData& operator = (SymbolData&&) = default;
     
+
+    SymbolData& setType(TypeNms::Type type);
     SymbolData& assign(const Value& value);
-    SymbolData& assign(Value&& value);
-    SymbolData& assign(const std::vector<Value>& values);
-    SymbolData& assign(std::vector<Value>&& values);
+    SymbolData& assign(const SymbolData& val);
 
     SymbolData& addSymbol(const SymbolData&); // pt functii/clase...?
     
     std::string name() const;
     std::string scope() const;
     TypeNms::Type type() const;
-    Value value() const;
+    const Value& value() const;
+    std::string className() const;
 
     bool isFunc() const;
     bool isArray() const;
     bool isInit() const;
     bool isConst() const;
 
-
     SymbolData* member(const std::string& id);
     SymbolData* member(size_t index);
+
+    SymbolData  instantiateClass(const std::string& scope, const std::string& name) const;
 
     bool hasSameTypeAs(const SymbolData& sym) const; // has same members if custom... etc
 
@@ -71,11 +77,11 @@ private:
     std::string _name;
     TypeNms::Type _type;
     std::string _scope;
-    bool _isInit;
-    bool _isConst;
-    bool _isArray;
-    bool _isFunc;
-    bool _isClassDef;
+    bool _isInit = false;
+    bool _isConst = false;
+    bool _isArray = false;
+    bool _isFunc = false;
+    bool _isClassDef = false;
 
     // pt classInstances ca sa stie ce clasa is daca-s tip custom...
     // ca ne trebuie cand afisam type ul in symboltable
@@ -83,7 +89,7 @@ private:
 
     Value _value;
 
-    bool assignable(const Value& _value);
+    void throwWhenUnassignable(const Value& val);
 };
 
 
@@ -91,8 +97,8 @@ class SymbolTable {
 public:
     SymbolTable() = default;
     SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0, const std::string& className = "");
+    SymbolTable& add(const SymbolData& data);
     SymbolTable& remove(const SymbolData& data);
-    //SymbolTable& add(SymbolData&& data);
     bool contains(const std::string& name);
 
     SymbolTable& addClass(const std::string& name);
@@ -109,9 +115,7 @@ public:
 
 private:
     
-    std::unordered_map<std::string, SymbolData> _table;
-    std::unordered_map<std::string, SymbolData> _classesTable;
+    std::unordered_map<std::string, std::unique_ptr<SymbolData>> _table;
+    std::unordered_map<std::string, std::unique_ptr<SymbolData>> _classesTable;
     std::vector<std::string> _currentScopeHierarchy = {""};
 };
-
-#endif
