@@ -11,14 +11,11 @@ public:
     ~AST();
     AST(const AST& other) = default;
     AST& operator = (const AST& rhs);
-    // expr
-    // nvm eu nu mai inteleg ce returneaza AST-urile astea...
-    // cred ca defapt aveam vreo eroare tampita lol
     AST(Operation::BinaryOp op, const AST* left, const AST* right);
     AST(Operation::UnaryOp op, const AST* left);
 
-    // why is this needed?
-    //AST(const AST* other);
+    // why is this needed? -- pt expresii cu paranteze
+    AST(const AST* other);
     AST(int literal);
     AST(float literal);
     AST(const char* literal);

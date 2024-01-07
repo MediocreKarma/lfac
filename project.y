@@ -337,7 +337,7 @@ sep_stmt  : assignment {}
           | decl_only {}
           | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->valueStr() << "\033[0m\n";}
           | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
-          | DO ':' block WHILE expr {std::cout << "here\n";} 
+          | DO ':' block WHILE expr {} 
 
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
@@ -348,7 +348,10 @@ non_sep_stmt   : if_expr ELSE ':' block {}
 if_expr   : IF expr { /* verify expr */ } ':' block
           ;
 
-assignment: identifier ASSIGN expr {delete $3;} // rip
+assignment: identifier ASSIGN expr { // nuj daca e suficient dar... face ceva? face
+                    $$->assign($3->symbol());
+                    delete $3;
+               } // rip
           ;
 
 function_call  : ID '(' expr_list ')' {}
