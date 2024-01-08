@@ -46,6 +46,7 @@ public:
     SymbolData& assign(const Value& value);
     SymbolData& assign(const SymbolData& val);
 
+    SymbolData& addSymbolToBeginning(const SymbolData&); // pt functii/clase...?
     SymbolData& addSymbol(const SymbolData&); // pt functii/clase...?
     
     std::string name() const;
@@ -67,6 +68,7 @@ public:
     bool hasSameTypeAs(const SymbolData& sym) const; // has same members if custom... etc
 
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
+    friend void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth);
 
     // cu siguranta astea functioneaza cum trebuie by default
     friend bool operator == (const SymbolData& a, const SymbolData& b) = default;

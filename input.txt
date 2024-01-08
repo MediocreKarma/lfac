@@ -121,4 +121,6 @@ fn int main() {
         Eval(-10)!!
     }
     Eval(y)!!
+
+    array int bbb[10]!!
 }

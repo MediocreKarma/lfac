@@ -107,7 +107,6 @@ SymbolData& SymbolData::assign(const Value& val) {
     throwWhenUnassignable(val);
     _isInit = true;
     _value = val;
-    // trebe adaugate si numele la membri
     return *this;
 }
 
@@ -183,8 +182,20 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
     }
 }
 
+SymbolData& SymbolData::addSymbolToBeginning(const SymbolData& symbol) {
+    if (_isArray or !std::holds_alternative<std::vector<SymbolData>>(_value)) {
+        throw std::runtime_error("Cannot add symbol to symbol " + _name + " that does not hold other symbols");
+    }
+    auto& vector = std::get<std::vector<SymbolData>>(_value);
+    vector.insert(vector.begin(), symbol);
+    return *this;
+}
+
+
 SymbolData& SymbolData::addSymbol(const SymbolData& symbol) {
-    // check if std::get<vector> is valid
+    if (_isArray or !std::holds_alternative<std::vector<SymbolData>>(_value)) {
+        throw std::runtime_error("Cannot add symbol to symbol " + _name + " that does not hold other symbols");
+    }
     std::get<std::vector<SymbolData>>(_value).push_back(symbol);
     return *this;
 }
@@ -302,25 +313,24 @@ bool sameType(const SymbolData& a, const SymbolData& b) {
 }
 
 void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
-    for (const SymbolData& subSd : std::get<std::vector<SymbolData>>(sd.value())) {
-        out << '\n' << std::string(depth, '\t') << subSd;
-        if (subSd.type() == CUSTOM || sd.isArray()) {
-            printSubsymbol(out, subSd, depth + 1);
-        }
+    if (depth > 0) {
+        out << '\n' << std::string(depth, '\t');
     }
-}
-
-std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
-    // momentan atat
     if (!sd.isFunc()) {
         out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: " << sd.name() << ", in scope " << sd.scope();
-        if (sd.type() == CUSTOM || sd.isArray()) {
-            printSubsymbol(out, sd, 1);
+        if (sd.type() == CUSTOM or sd.isArray()) {
+            for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
+                printSubsymbol(out, subSymbol, 1);
+            }
         } 
     }
     else {
         out << "Function with type: " << typeToStr(sd._type) << ", name: " << sd.name() << ", in scope " << sd.scope();
     }
+}
+
+std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
+    printSubsymbol(out, sd, 0);
     return out;
 }
 
@@ -375,6 +385,7 @@ void SymbolTable::enterAnonymousScope() {
 }
 
 // todo: specify if i'm entering a class scope or a fxn scope. We might need that info
+// poate bagam totusi un specific prefix pt clase... maybe... ca sa fim 100% sigur ca niciun scope nu se suprapune cu al unei clase, pt ca scope ul unei clase e f important cand caut metode. idk
 void SymbolTable::enterScope(const std::string& str) {
     _currentScopeHierarchy.push_back(str);
     //std::cout << "Current scope: " << currentScope() << "\n";

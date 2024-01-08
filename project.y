@@ -41,7 +41,7 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext
 %type<list> class_members class_members1
 
 // am gasit asta pe net. sper sa nu ne strice mai tare
@@ -312,12 +312,31 @@ decl_assign    : TYPE ID ASSIGN expr {
                     symbolTable.add(symbol);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
                     $$->assign($5->value());
-                    std::cout << *$$ << "\n";
 
                     // stergem initializer listu
                     delete $5;
                }
-               | CONST CLASS ID ID ASSIGN initializer_list {}
+               | CONST CLASS ID ID ASSIGN initializer_list {
+                    // create $
+                    if(symbolTable.contains($4)) {
+                         yyerror(std::string("Class type symbol could not be created because symbol ") + $4 + " already exists in same scope");
+                    }
+                    // check if class is defined
+                    SymbolData* classSymbol = symbolTable.findClass($3);
+                    if (classSymbol == nullptr) {
+                         yyerror(std::string("Cannot instantiate symbol ") + $4 + " of non-defined class type " + $3);
+                    }
+                    // copy of class template
+                    SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $4);
+                    std::cout << symbol << '\n';
+                    symbolTable.add(symbol);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $4);
+                    $$->assign($6->value());
+                    $$->setConst();
+                    // stergem initializer listu
+                    delete $6;
+               }
+               // TODO : do these
                | ARRAY ID ID ASSIGN initializer_list {}
                | CONST ARRAY ID ID ASSIGN initializer_list {}
 
@@ -411,20 +430,18 @@ function_call  : ID '(' expr_list ')' {
                }
                ;
         
-initializer_list : '{' initializer_list_inner  '}' {$$ = $2;}
+initializer_list : '{' initializer_list_inner  '}' {$$ = $2; std::cout << " INIT LIST: \n" << *$$ << "\n";}
                  ;
 
-// nu pot folosi direct expr_list pt ca tre sa poata avea si inner init lists
 initializer_list_inner : initializer_list_elem {
                               $$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::Variable);
                               $$->addSymbol(*$1);
                               delete $1;
                          }
-                         // fiindca addSymbol adauga la sfarsit, mi e mai usor cu left-recursive
-                         // daca vrei neaparat right-recursive poti sa faci un emplaceBackSymbol() care sa bage gen la inceput simbolu
-                         | initializer_list_inner ',' initializer_list_elem {
-                              $1->addSymbol(*$3);
-                              $$ = $1;
+                         | initializer_list_elem ',' initializer_list_inner {
+                              $$ = $3;
+                              $3->addSymbolToBeginning(*$1);
+                              delete $1;
                          }
                          ;
 
@@ -438,8 +455,8 @@ initializer_list_elem : initializer_list {
                       ;
 
 
-expr_list : expr_list_ext
-          | /* epsilon */ {/* return nullptr */}
+expr_list : expr_list_ext {$$ = $1;}
+          | /* epsilon */ {$$ = /*custom symbol data...?????*/ new SymbolData();}
           ;
 
 expr_list_ext  : expr ',' expr_list_ext {/*add expr to expr list*/}
