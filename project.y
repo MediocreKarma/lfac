@@ -330,7 +330,12 @@ stmt : sep_stmt SEP
      ;
 
 sep_stmt  : assignment {}
-          | RETURN expr {/*expr is of func type?*/}
+          | RETURN expr {/*
+               check if expr is of func type
+               // da dar cum? tre sa obtinem current function... nu?
+               // sau folosim gen current scope..?
+
+          */}
           | decl_assign {}
           | decl_only {}
           | function_call {}
@@ -383,17 +388,27 @@ function_call  : ID '(' expr_list ')' {
                     }
 
                     //std::cout << "[Called method " + scopedName << "]\n";
-                    // todo: verify params
+                    // todo: verify params, similar ca la initializer list, cred...
                }
                ;
         
-initializer_list : '{' expr_list '}'
+initializer_list : '{' initializer_list_inner '}'
+
+// nu pot folosi direct expr_list pt ca tre sa poata avea si inner init lists
+initializer_list_inner : | initializer_list_elem {}
+                         | initializer_list_elem ',' initializer_list_inner {}
+
+// ne trebe ceva tip special de lista inlantuita
+initializer_list_elem : initializer_list {}
+                      | expr {}
+
 
 expr_list : expr_list_ext
-          | /* epsilon */
+          | /* epsilon */ {/* return nullptr */}
           ;
 
-expr_list_ext  : expr ',' expr_list_ext { }
+// ne trebuie un AST list si aici
+expr_list_ext  : expr ',' expr_list_ext {/*add expr to expr list*/}
                | expr {/**/}
 
 expr : '(' expr ')' {$$ = new AST($2);}
