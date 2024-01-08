@@ -69,13 +69,16 @@ public:
 
     bool hasSameTypeAs(const SymbolData& sym) const; // has same members if custom... etc
 
+    std::string valueStr() const;
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
     friend void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth);
 
     // cu siguranta astea functioneaza cum trebuie by default
     friend bool operator == (const SymbolData& a, const SymbolData& b) = default;
     friend bool operator != (const SymbolData& a, const SymbolData& b) = default;
+
     friend bool sameType(const SymbolData& a, const SymbolData&b);
+
 private:
 
     std::string _name;

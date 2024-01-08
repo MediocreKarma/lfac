@@ -105,7 +105,7 @@ class_definition:   CLASS ID '{' {
                               delete ptr;
                               ptr = next;
                          }
-                         std::cout << *classDef << '\n';
+                         std::cout << "CLASS DEF: " << *classDef << '\n';
                     } 
                     DECL '{' functions_decl '}' DEF '{' class_methods_def '}' '}' {symbolTable.exitScope();};
 

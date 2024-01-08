@@ -80,6 +80,51 @@ char Utils::preprocessCharLiteral(const char* input) {
     return desired;
 }
 
+std::string Utils::encodeStringValue(const std::string& input) {
+    std::string result;
+    for (char c : input) {
+        switch (c) {
+            case '"':
+                result += "\\\"";
+                break;
+            case '\0':
+                result += "\\0";
+                break;
+            case '\n':
+                result += "\\n";
+                break;
+            case '\t':
+                result += "\\t";
+                break;
+            case '\r':
+                result += "\\r";
+                break;
+            case '\'':
+                result += "\\'";
+                break;
+            case '\\':
+                result += "\\\\";
+                break;
+            case '\a':
+                result += "\\a";
+                break;
+            case '\b':
+                result += "\\b";
+                break;
+            case '\f':
+                result += "\\f";
+                break;
+            case '\v':
+                result += "\\v";
+                break;
+            default:
+                result += c;
+                break;
+        }
+    }
+    return result;
+}
+
 void Utils::printWarning(const std::string& input) {
     std::cerr << "\033[1;33mWarning:\033[0m " + input + " \033[1;36m(at line: " + std::to_string(yylineno)+ ")\033[0m\n";
 }

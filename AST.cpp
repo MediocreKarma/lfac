@@ -251,21 +251,7 @@ std::string AST::typeStr() const {
 }
 
 std::string AST::valueStr() const {
-    using namespace TypeNms;
-    switch(_symbol.type()) {
-        case INT :
-            return std::to_string(std::get<int>(_symbol.value()));
-        case FLOAT:
-            return std::to_string(std::get<float>(_symbol.value()));
-        case BOOL:
-            return (std::get<bool>(_symbol.value()) == 1) ? "true" : "false";
-        case CHAR:
-            return std::to_string(std::get<char>(_symbol.value()));
-        case STRING:
-            return std::get<std::string>(_symbol.value());
-        default:
-            return "Non-base-type (unreadable value)";
-    }
+    return _symbol.valueStr();
 }
 
 const SymbolData& AST::symbol() const {

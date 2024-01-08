@@ -11,6 +11,7 @@ extern int yylineno; // ca sa putem printa warninguri care-mi spun si linia. Nu 
 namespace Utils {
     char* preprocessStringLiteral(const char* input);
     char  preprocessCharLiteral(const char* input);
+    std::string encodeStringValue(const std::string& input);
 
     void printError(const std::string& input);
     void printWarning(const std::string& input);

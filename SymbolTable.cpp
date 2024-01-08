@@ -346,18 +346,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         }
         else { //basetype val, for sure... cel putin asa cred
             const auto val = sd.value();
-            out << ", with value ";
-            if (std::holds_alternative<int>(val)) {
-                out << std::to_string(std::get<int>(val));
-            } else if (std::holds_alternative<bool>(val)) {
-                out << std::get<bool>(val) ? "true" : "false";
-            } else if (std::holds_alternative<char>(val)) {
-                out << std::string(1, std::get<char>(val));
-            } else if (std::holds_alternative<float>(val)) {
-                out << std::to_string(std::get<float>(val));
-            } else if (std::holds_alternative<std::string>(val)) {
-                out << std::get<std::string>(val);
-            } 
+            out << ", with value " << sd.valueStr();
         }
     }
     else {
@@ -368,6 +357,28 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
 std::ostream& operator << (std::ostream& out, const SymbolData& sd) {
     printSubsymbol(out, sd, 0);
     return out;
+}
+
+
+std::string SymbolData::valueStr() const {
+    using namespace TypeNms;
+    if (!_isInit) {
+        return "uninitialized";
+    }
+    switch(type()) {
+        case INT :
+            return std::to_string(std::get<int>(_value));
+        case FLOAT:
+            return std::to_string(std::get<float>(_value));
+        case BOOL:
+            return (std::get<bool>(_value) == 1) ? "true" : "false";
+        case CHAR:
+            return Utils::encodeStringValue(std::string() + std::get<char>(_value));
+        case STRING:
+            return Utils::encodeStringValue(std::get<std::string>(_value));
+        default:
+            return "non-base-type";
+    }
 }
 
 // --- SymbolTable ---
