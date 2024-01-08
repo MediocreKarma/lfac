@@ -107,14 +107,13 @@ SymbolData& SymbolData::assign(const Value& val) {
     using namespace TypeNms;
     throwWhenUnassignable(val);
     _isInit = true;
-    if (_type != CUSTOM and !_isArray) { // basetype vars/members elements
+    if (_type != CUSTOM and !_isArray) { // strictly basetype stuff
         _value = val;
         return *this;
     }
 
-    // manual recursive assign. Urasc
     if (!std::holds_alternative<std::vector<SymbolData>>(_value)) {
-        throw std::runtime_error("Cannot iterate through array or non-base-type symbol" + _name + " in order to assign to it. Something has gone very wrong");
+        throw std::runtime_error("Cannot iterate through array or non-base-type symbol " + _name + " in order to assign to it. Something has gone very wrong");
     }
 
     auto& vector = std::get<std::vector<SymbolData>>(_value);
@@ -178,6 +177,9 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
     const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
     if (thisData.size() < otherData.size()) {
         throw std::runtime_error("Initializer list has too many parameters");
+    }
+    else if (thisData.size() > otherData.size()) {
+        Utils::printWarning("Initializer list has too few parameters for symbol" + ((_name.empty()) ? "" : " " + _name) + ". Part of symbol will remain uninitialized");
     }
     if (isArray()) {
         for (size_t i = 0; i < otherData.size(); ++i) {
@@ -285,7 +287,7 @@ SymbolData* SymbolData::member(const std::string& id) {
 
 SymbolData* SymbolData::member(const size_t index) {
     if (!_isArray) {
-        throw std::invalid_argument("Cannot apply index operator to non-array types");
+        throw std::invalid_argument("Cannot apply index operator to non-array symbol");
     }
     std::vector<SymbolData>* vec = std::get_if<std::vector<SymbolData>>(&_value);
     if (index >= vec->size()) {

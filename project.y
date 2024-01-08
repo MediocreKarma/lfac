@@ -430,7 +430,7 @@ function_call  : ID '(' expr_list ')' {
                }
                ;
         
-initializer_list : '{' initializer_list_inner  '}' {$$ = $2; std::cout << " INIT LIST: \n" << *$$ << "\n";}
+initializer_list : '{' initializer_list_inner  '}' {$$ = $2;}
                  ;
 
 initializer_list_inner : initializer_list_elem {
@@ -493,21 +493,19 @@ expr : '(' expr ')' {$$ = new AST($2);}
      ;
 
 %%
-// s-ar putea sa vrem si din asta
-void yywarning(const char* s) {
 
-}
 void yyerror(std::string s) {
-     printf("\033[1;31mError:\033[0m %s \033[1;36m(at line: %d)\033[0m\n", s.c_str(), yylineno);
+     Utils::printError(s);
      exit(1);
 }
 
 int main(int argc, char** argv) {
      yyin=fopen(argv[1],"r");
-     /* try { */
+     try {
           yyparse(); // momentan commented out, doar ca sa mi fie mai usor sa fac debug, sa vad si eu un backtrace...
-     /* }
+     }
      catch(std::exception& e) {
-          yyerror(e.what()); */
+          yyerror(e.what());
+     }
      symbolTable.print(std::cout);
 } 

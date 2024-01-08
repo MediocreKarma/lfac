@@ -54,8 +54,8 @@ ENDFUNCTIONS
 
 fn int main() { 
 
-    class My elem := {1, 2}!!
-    Eval(elem.xx)!!
+    class My elem := {1}!!
+    Eval(elem.xy)!!
 
     x := 6 + 5!!
     

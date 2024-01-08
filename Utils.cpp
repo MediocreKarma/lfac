@@ -79,3 +79,11 @@ char Utils::preprocessCharLiteral(const char* input) {
     free(processed);
     return desired;
 }
+
+void Utils::printWarning(const std::string& input) {
+    std::cerr << "\033[1;33mWarning:\033[0m " + input + " \033[1;36m(at line: " + std::to_string(yylineno)+ ")\033[0m\n";
+}
+
+void Utils::printError(const std::string& input) {
+    std::cerr << "\033[1;31mError:\033[0m " + input + " \033[1;36m(at line: " + std::to_string(yylineno)+ ")\033[0m\n";
+}

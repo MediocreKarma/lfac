@@ -12,6 +12,7 @@
 #include <algorithm>
 
 #include "types.h"
+#include "Utils.h"
 
 namespace Scope { // scope utils
     static const char* DELIM = "/";
