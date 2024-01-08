@@ -43,12 +43,13 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
             break;
         case Function:
             _isFunc = true;
-            _value = std::vector<SymbolData>();
             break;
         case Class:
             _isClassDef = true;
-            _value = std::vector<SymbolData>();
             break;
+    }
+    if (t == CUSTOM or _isFunc or _isClassDef) { // daca e class instance, sau func, sau classdef... either way
+        _value = std::vector<SymbolData>();
     }
     if (t == CUSTOM) {
         _className = className;
@@ -106,6 +107,7 @@ SymbolData& SymbolData::assign(const Value& val) {
     throwWhenUnassignable(val);
     _isInit = true;
     _value = val;
+    // trebe adaugate si numele la membri
     return *this;
 }
 
@@ -147,7 +149,7 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         }
         valueType = TypeNms::typeToStr(STRING);
     }
-    if (valueType.empty() == false) {
+    if (valueType.empty() == false) { // ??
         if (isArray() == true) {
             throw std::runtime_error("Cannot assign " + valueType + " to an array identifier");
         }
@@ -157,6 +159,7 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type Class " + className());
     }
     // initializer list
+    std::cout << "init list\n";
     const std::vector<SymbolData>&  thisData = std::get<std::vector<SymbolData>>(value());
     const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
     if (thisData.size() < otherData.size()) {
@@ -181,9 +184,7 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
 }
 
 SymbolData& SymbolData::addSymbol(const SymbolData& symbol) {
-    if (!_isFunc and !_isClassDef) {
-        throw std::runtime_error("Cannot add symbol to non-class, non-function symbol");
-    }
+    // check if std::get<vector> is valid
     std::get<std::vector<SymbolData>>(_value).push_back(symbol);
     return *this;
 }

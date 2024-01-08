@@ -41,7 +41,7 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem
 %type<list> class_members class_members1
 
 // am gasit asta pe net. sper sa nu ne strice mai tare
@@ -244,7 +244,7 @@ identifier: ID { $$ = symbolTable.findId($1); if (!$$) yyerror(std::string("Unde
           ;
 
 decl : decl_only
-     | decl_assign                                             
+     | decl_assign {}                                         
      | function_declaration {}
      ;
 
@@ -297,7 +297,25 @@ decl_assign    : TYPE ID ASSIGN expr {
 
                } 
                | CLASS ID ID ASSIGN initializer_list {
-                    /**/
+                    // create $
+                    if(symbolTable.contains($3)) {
+                         yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists in same scope");
+                    }
+                    // check if class is defined
+                    SymbolData* classSymbol = symbolTable.findClass($2);
+                    if (classSymbol == nullptr) {
+                         yyerror(std::string("Cannot instantiate symbol ") + $3 + " of non-defined class type " + $2);
+                    }
+                    // copy of class template
+                    SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $3);
+                    std::cout << symbol << '\n';
+                    symbolTable.add(symbol);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $3);
+                    $$->assign($5->value());
+                    std::cout << *$$ << "\n";
+
+                    // stergem initializer listu
+                    delete $5;
                }
                | CONST CLASS ID ID ASSIGN initializer_list {}
                | ARRAY ID ID ASSIGN initializer_list {}
@@ -309,6 +327,7 @@ fn_param  : list_param { $$ = $1; }
           | /* epsilon */ { $$ = nullptr; }
           ;
 
+// todo: check for memleaks..? ca nu stiu exact cand ar trb freed symbolValue urile din decl_only
 list_param     : decl_only {
                     $$ = new SymbolList;
                     $$->next = nullptr;
@@ -392,22 +411,37 @@ function_call  : ID '(' expr_list ')' {
                }
                ;
         
-initializer_list : '{' initializer_list_inner '}'
+initializer_list : '{' initializer_list_inner  '}' {$$ = $2;}
+                 ;
 
 // nu pot folosi direct expr_list pt ca tre sa poata avea si inner init lists
-initializer_list_inner : | initializer_list_elem {}
-                         | initializer_list_elem ',' initializer_list_inner {}
+initializer_list_inner : initializer_list_elem {
+                              $$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::Variable);
+                              $$->addSymbol(*$1);
+                              delete $1;
+                         }
+                         // fiindca addSymbol adauga la sfarsit, mi e mai usor cu left-recursive
+                         // daca vrei neaparat right-recursive poti sa faci un emplaceBackSymbol() care sa bage gen la inceput simbolu
+                         | initializer_list_inner ',' initializer_list_elem {
+                              $1->addSymbol(*$3);
+                              $$ = $1;
+                         }
+                         ;
 
-// ne trebe ceva tip special de lista inlantuita
-initializer_list_elem : initializer_list {}
-                      | expr {}
+initializer_list_elem : initializer_list {
+                              $$ = $1;
+                        }
+                      | expr {
+                              $$ = new SymbolData($1->symbol());
+                              
+                      }
+                      ;
 
 
 expr_list : expr_list_ext
           | /* epsilon */ {/* return nullptr */}
           ;
 
-// ne trebuie un AST list si aici
 expr_list_ext  : expr ',' expr_list_ext {/*add expr to expr list*/}
                | expr {/**/}
 
@@ -453,12 +487,11 @@ void yyerror(std::string s) {
 
 int main(int argc, char** argv) {
      yyin=fopen(argv[1],"r");
-     try {
-          yyparse();
-     }
+     /* try { */
+          yyparse(); // momentan commented out, doar ca sa mi fie mai usor sa fac debug, sa vad si eu un backtrace...
+     /* }
      catch(std::exception& e) {
-          yyerror(e.what());
-     }
+          yyerror(e.what()); */
      std::cout << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
      symbolTable.print(std::cout);
 } 

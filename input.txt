@@ -55,7 +55,7 @@ ENDFUNCTIONS
 
 fn int main() { 
 
-    class My elem := {1, 2, {3, x}, 5}!!
+    class My elem := {1, 2}!!
 
     x := 6 + 5!!
     
