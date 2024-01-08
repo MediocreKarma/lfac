@@ -19,7 +19,5 @@ def {
 ENDCLASSES
 
 fn int main() { 
-    int b := 5!!
-    int k := 20!!
-    Eval(b * k)!!
+    class A a := {3, 4}!!
 }

@@ -124,5 +124,7 @@ private:
     
     std::unordered_map<std::string, std::unique_ptr<SymbolData>> _table;
     std::unordered_map<std::string, std::unique_ptr<SymbolData>> _classesTable;
+    std::vector<SymbolData*> _orderedTable;
+    std::vector<SymbolData*> _orderedClassesTable;
     std::vector<std::string> _currentScopeHierarchy = {""};
 };

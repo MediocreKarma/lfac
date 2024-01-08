@@ -334,8 +334,8 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         out << '\n' << std::string(depth, '\t');
     }
     if (!sd.isFunc()) {
-        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: " << sd.name()
-            << ", in scope " << sd.scope();
+        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" << sd.name()
+            << "\', in scope \'" << sd.scope() << '\'';
         // get base type if not custom
         
         
@@ -350,7 +350,10 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         }
     }
     else {
-        out << "Function with type: " << typeToStr(sd._type) << ", name: " << sd.name() << ", in scope " << sd.scope();
+        out << "Function with type: " << typeToStr(sd._type) << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
+        for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
+            printSubsymbol(out, subSymbol, 1);
+        }
     }
 }
 
@@ -385,23 +388,36 @@ std::string SymbolData::valueStr() const {
 
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
     _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, size, className));
+    _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
     //std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
     return *this;
 }
 
 SymbolTable& SymbolTable::add(const SymbolData& symbol) {
     _table.emplace(Scope::scopeWithNameToString(currentScope(), symbol.name()), std::make_unique<SymbolData>(symbol));
+    _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), symbol.name())).get());
     //std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), symbol.name()) + "\n";
     return *this;
 }
 
 SymbolTable& SymbolTable::addClass(const std::string& name) {
     _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0, name));
+    _orderedClassesTable.push_back(_classesTable.at(name).get());
     return *this;
 }
 
 SymbolTable& SymbolTable::remove(const SymbolData& data) {
     //std::cout << "Removed element " << data.scope() + data.name() << '\n';
+    auto it = _table.find(data.scope() + data.name());
+    if (it == _table.end()) {
+        return *this;
+    }
+    for (auto ordIt = _orderedTable.begin(); ordIt != _orderedTable.end(); ++ordIt) {
+        if (*ordIt == it->second.get()) {
+            _orderedTable.erase(ordIt);
+            break;
+        }
+    }
     _table.erase(data.scope() + data.name());
     return *this;
 }
@@ -411,8 +427,8 @@ bool SymbolTable::contains(const std::string& name) {
 }
 
 void SymbolTable::print(std::ostream& out) {
-    out << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
-    for (const auto& [path, smb] : _table) {
+    out << "\n--- SYMBOL TABLE ---\n" << std::endl;
+    for (const auto smb : _orderedTable) {
         out << *smb << '\n';
     }
 }

@@ -145,7 +145,6 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
                               symbols.push_back(*ptr->symbol);
-                              // check if maybe symbol with same name isn't already in symbols..?
                               symbolTable.remove(*ptr->symbol);
                               SymbolList* next = ptr->next;
                               delete ptr;
