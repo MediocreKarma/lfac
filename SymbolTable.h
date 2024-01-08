@@ -14,7 +14,7 @@
 
 namespace Scope { // scope utils
     static const char* DELIM = "/";
-    std::string scopeToString(const std::vector<std::string>&);
+    std::string scopeToString(const std::vector<std::string>& scope, ssize_t size = -1);
     std::string scopeWithNameToString(const std::string& scope, const std::string& name);
     // verify if access to variable in encompassing scope
     // is possible in active scope 
@@ -41,7 +41,7 @@ public:
     SymbolData& operator = (const SymbolData&) = default;
     SymbolData& operator = (SymbolData&&) = default;
     
-
+    SymbolData& setConst(bool value = true);
     SymbolData& setType(TypeNms::Type type);
     SymbolData& assign(const Value& value);
     SymbolData& assign(const SymbolData& val);

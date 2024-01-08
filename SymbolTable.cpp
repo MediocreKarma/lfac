@@ -3,13 +3,20 @@
 
 using namespace TypeNms;
 
-std::string Scope::scopeToString(const std::vector<std::string>& scope) {
+std::string Scope::scopeToString(const std::vector<std::string>& scope, ssize_t size) {
     const char* const delim = "/";
-    std::ostringstream result;
-    std::copy(scope.begin(), scope.end(),
-            std::ostream_iterator<std::string>(result, delim));
-
-    return result.str();
+    std::string result;
+    if (size < 0) {
+        for (const auto& scopeStr : scope) {
+            result += scopeStr + delim;
+        }
+    }
+    else {
+        for (int i = 0; i < size; ++i) {
+            result += scope[i] + delim;
+        }
+    }
+    return result;
 }
 
 std::string Scope::scopeWithNameToString(const std::string& scope, const std::string& name) {
@@ -56,12 +63,21 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     _value = val;
 }
 
+SymbolData& SymbolData::setConst(bool value) {
+    if (_isConst and value == false) {
+        throw std::runtime_error("Cannot make const symbol " + _name + " non-const");
+    }
+    _isConst = value;
+    return *this;
+}
+
 SymbolData& SymbolData::setType(TypeNms::Type type) {
     _type = type;
     return *this;
 }
 
 SymbolData& SymbolData::assign(const SymbolData& symbol) {
+    throwWhenUnassignable(symbol.value()); // ..?? oare trebuie si aici? todo: check
     if (sameType(*this, symbol) == false) {
         std::string from  = TypeNms::typeToStr(symbol.type());
         std::string to    = TypeNms::typeToStr(type());
@@ -95,10 +111,10 @@ SymbolData& SymbolData::assign(const Value& val) {
 
 void SymbolData::throwWhenUnassignable(const Value& val) {
     if (isConst()) {
-        throw std::runtime_error("Cannot assign to constant variable!");
+        throw std::runtime_error("Cannot assign to constant symbol " + _name);
     }
     if (isFunc()) {
-        throw std::runtime_error("Cannot assign to function!");
+        throw std::runtime_error("Cannot assign to function symbol " + _name);
     }
     std::string valueType = "";
     if (std::holds_alternative<int>(val)) {
@@ -210,7 +226,7 @@ bool SymbolData::isConst() const {
 
 SymbolData SymbolData::instantiateClass(const std::string& scope, const std::string& name) const {
     if (!_isClassDef) {
-        throw std::invalid_argument("Cannot clone non-class_template");
+        throw std::invalid_argument("Cannot clone non-class-template symbol " + _name);
     }
     SymbolData symbol(*this);
     symbol._scope = scope;
@@ -262,12 +278,18 @@ bool sameType(const SymbolData& a, const SymbolData& b) {
     if (a.type() != b.type()) {
         return false;
     }
-    const auto& aData = std::get<std::vector<SymbolData>>(a.value());
-    const auto& bData = std::get<std::vector<SymbolData>>(b.value());
-    if (aData.size() != bData.size()) {
+    if (a.type() == CUSTOM and b.type() == CUSTOM
+        and !a.isFunc() and !b.isFunc()
+        and !a.isArray() and !b.isArray()
+        and  a.className() != b.className()) { // class instance
         return false;
     }
-    if (a.isArray() != b.isArray() || a.isFunc() != b.isFunc()) { // any type of array
+    const auto& aData = std::get<std::vector<SymbolData>>(a.value());
+    const auto& bData = std::get<std::vector<SymbolData>>(b.value());
+    if (aData.size() != bData.size()) { // in case they're vectors / class instances, presumably
+        return false;
+    }
+    if (a.isArray() != b.isArray() or a.isFunc() != b.isFunc()) { // not both same special type
         return false;
     }
     for (size_t i = 0; i < aData.size(); ++i) {
@@ -372,9 +394,12 @@ SymbolData* SymbolTable::find(const std::string& scopedName) {
 
 SymbolData* SymbolTable::findId(const std::string& id) {
     std::string scope = "";
-    for (const std::string& scopeAdd: _currentScopeHierarchy) {
-        scope += scopeAdd + "/";
-        auto it = _table.find(scope + id);
+    // mergem invers de la currentScopeHierarchy IN JOS
+    // de la cel mai specific spre cel mai general scope
+    // adica sper ca asta voiai sa faci defapt
+    for (int i = _currentScopeHierarchy.size(); i >= 0; --i) {
+        std::string joinedScope = Scope::scopeToString(_currentScopeHierarchy, i);
+        auto it = _table.find(joinedScope + id);
         if (it != _table.end()) {
             return it->second.get();
         }

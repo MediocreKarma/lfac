@@ -153,7 +153,7 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($3)) {
-                              yyerror(std::string("Function declaration invalid because symbol ") + $3 + " already exists");
+                              yyerror(std::string("Function declaration invalid because symbol ") + $3 + " already exists in same scope");
                          }
                          symbolTable.add($3, TypeNms::strToType($2), SymbolData::Function);
                          $$ = symbolTable.find(symbolTable.currentScope() + $3);
@@ -176,7 +176,7 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                          }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($4)) {
-                              yyerror(std::string("Function declaration invalid because symbol ") + $4 + " already exists");
+                              yyerror(std::string("Function declaration invalid because symbol ") + $4 + " already exists in same scope");
                          }
                          symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, 0, $3);
                          $$ = symbolTable.find(symbolTable.currentScope() + $4);
@@ -231,18 +231,14 @@ block : '{' {symbolTable.enterAnonymousScope(); } statement_list '}' { symbolTab
      ;
 
 identifier: ID { $$ = symbolTable.findId($1); if (!$$) yyerror(std::string("Undefined identifier ") + $1); }
-          | ID '.' ID {
-               // find class variable
-               SymbolData* var = symbolTable.findId($1);
-               if (var == nullptr) yyerror(std::string("Cannot access undefined symbol ") + $1);
-               $$ = var->member($3);
-               if ($$ == nullptr) yyerror(std::string("Cannot access undefined member ") + $3 + " of symbol " + $1);
+          | identifier '.' ID {
+               $$ = $1->member($3);
+               if ($$ == nullptr) yyerror(std::string("Cannot access undefined member ") + $3 + " of symbol " + $1->name());
           }
-          | ID '[' INTVAL ']' {
-               SymbolData* var = symbolTable.findId($1);
-               if (var == nullptr) yyerror(std::string("Undefined symbol ") + $1);
-               $$ = var->member($3);
-               if ($$ == nullptr) yyerror(std::string("Array index out of bounds for symbol ") + $1);
+          | identifier '[' INTVAL ']' { // array element
+               // todo: recheck if correct
+               $$ = $1->member($3);
+               if ($$ == nullptr) yyerror(std::string("Array index out of bounds for symbol ") + $1->name());
           }
           | SELF '.' ID {/* il lasam asa. methods are only syntactic anyway si n avem self decat in methods */}
           ;
@@ -254,21 +250,21 @@ decl : decl_only
 
 decl_only: TYPE ID { 
                if(symbolTable.contains($2)) {
-                    yyerror(std::string("Base type symbol could not be created because symbol ") + $2 + " already exists");
+                    yyerror(std::string("Base type symbol could not be created because symbol ") + $2 + " already exists in same scope");
                }
                symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
           | ARRAY TYPE ID '[' INTVAL ']' { /* array decl */
                if(symbolTable.contains($3)) {
-                    yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists");
+                    yyerror(std::string("Array type symbol could not be created because symbol ") + $3 + " already exists in same scope");
                }
                symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, $5);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
           | CLASS ID ID  { /*instante de clase. class MyClass x*/
                if(symbolTable.contains($3)) {
-                    yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists");
+                    yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists in same scope");
                }
                // check if class is defined
                SymbolData* classSymbol = symbolTable.findClass($2);
@@ -282,10 +278,9 @@ decl_only: TYPE ID {
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
 
-// todo: DON'T FORGET TO MAKE EXPR WORK
 decl_assign    : TYPE ID ASSIGN expr {
                     if(symbolTable.contains($2)) {
-                         yyerror(std::string("Symbol ") + $2 + " already exists");
+                         yyerror(std::string("Symbol ") + $2 + " already exists in same scope");
                     }
                     symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $2);
@@ -293,10 +288,13 @@ decl_assign    : TYPE ID ASSIGN expr {
                }
                | CONST TYPE ID ASSIGN expr {
                     if(symbolTable.contains($3)) {
-                         yyerror(std::string("Symbol ") + $3 + " already exists");
+                         yyerror(std::string("Symbol ") + $3 + " already exists in same scope");
                     }
                     symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
+                    $$->assign($5->symbol());
+                    $$->setConst(); // after assignment
+
                } 
                | CLASS ID ID ASSIGN initializer_list {
                     /**/
@@ -335,6 +333,7 @@ sep_stmt  : assignment {}
           | RETURN expr {/*expr is of func type?*/}
           | decl_assign {}
           | decl_only {}
+          | function_call {}
           | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->valueStr() << "\033[0m\n";}
           | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
           | DO ':' block WHILE expr {} 
@@ -348,13 +347,44 @@ non_sep_stmt   : if_expr ELSE ':' block {}
 if_expr   : IF expr { /* verify expr */ } ':' block
           ;
 
-assignment: identifier ASSIGN expr { // nuj daca e suficient dar... face ceva? face
-                    $$->assign($3->symbol());
+assignment: identifier ASSIGN expr {
+                    $$->assign($3->symbol()); // ??? e ok???
                     delete $3;
                } // rip
           ;
 
-function_call  : ID '(' expr_list ')' {}
+function_call  : ID '(' expr_list ')' {
+                    /*verify if identifier exists and is func*/
+                    auto fxnPtr = symbolTable.findId($1);
+                    if (!fxnPtr) {
+                         yyerror("Cannot call non-existent function symbol");
+                    }
+                    if (!fxnPtr->isFunc()) {
+                         yyerror("Cannot call non-function symbol");
+                    }
+                    //std::cout << "[Called function " + fxnPtr->name() << "]\n";
+                    // todo: verify params
+               }
+               | identifier '.' ID '(' expr_list ')' {
+                    /* it's gotta be a class instance; check if function exists in class scope*/
+                    if ($1->type() != TypeNms::CUSTOM) {
+                         yyerror("Cannot call method of non-class symbol");
+                    }
+                    auto className = $1->className();
+                    if (className.empty()) { // daca am fct totul bine n ar trb sa fim aici
+                         yyerror("Cannot determine class name of symbol");
+                    }
+                    auto functionName = std::string($3);
+                    auto methodScope = Scope::scopeToString({"", className});
+                    auto scopedName = Scope::scopeWithNameToString(methodScope, functionName);
+                    auto methodSymbol = symbolTable.find(scopedName);
+                    if (!methodSymbol) {
+                         yyerror("Cannot call non-existent class method " + scopedName);
+                    }
+
+                    //std::cout << "[Called method " + scopedName << "]\n";
+                    // todo: verify params
+               }
                ;
         
 initializer_list : '{' expr_list '}'
@@ -391,9 +421,9 @@ expr : '(' expr ')' {$$ = new AST($2);}
      | BOOLVAL { std::cout << "Bool Literal: " << $1 << std::endl; $$ = new AST((bool)$1); }
      | STRINGVAL { std::cout << "String Literal: " << $1 << std::endl; $$ = new AST($1); }
      | CHARVAL { std::cout << "Char Literal: " << $1 << std::endl; $$ = new AST($1); }
-     | assignment { $$ = new AST(*$1); }
+     | assignment { $$ = new AST(*$1);}
      | identifier { $$ = new AST(*$1);}
-     | function_call {/* aici nu trebuie sa verificam valoarea functiei, ci doar sa punem Default AST Node with the same type as function*/}  /* function calls */
+     | function_call {$$ = new AST((int)0); /*cred, anyway*/}
      ;
 
 %%

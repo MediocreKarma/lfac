@@ -1,9 +1,12 @@
 CLASSES
 
 class My {
-    decl {
+    members {
+
         int xy!!
         int xx!!
+    }
+    decl {
         fn int scopeFunction(int x)!!
     }
     def {
@@ -20,7 +23,6 @@ GLOBALS
 int x!!
 int y!!
 
-array char c[10]!!!!
 
 class My mine!!!!!!!!!!
 
@@ -34,6 +36,7 @@ FUNCTIONS
 decl {
     fn int function(int param1, char param2)!!
     fn class My function2(string randParam, class My param2)!!
+    fn int fxn(int x, int y)!!
 }
 def {
     fn int function(int randParam, char randParam2) {
@@ -43,6 +46,10 @@ def {
     fn class My function2(string randParam, class My param2) {
         char newVar2!!!!!!
     }
+
+    fn int fxn(int x, int y) {
+        Eval(5)!!
+    }
 }
 ENDFUNCTIONS
 
@@ -51,6 +58,11 @@ fn int main() {
 
     x := 6 + 5!!
     
+    fxn(1, 2)!!
+
+    mine.scopeFunction(1)!!
+    
+    Eval(fxn(1, 2))!!
 
     do : {
         Eval(3)!!
@@ -61,11 +73,14 @@ fn int main() {
 
 
     y := (6 - 243)/ 15 + 3!!
+    Eval(y)!!
+    float y!!
+    y := 25.4!!
+    Eval(y)!!
 
     b := true !!!!
 
-    c[2] := '5'!!
-
+  
     cha := '\n'!!
 
     str := "abc\"def" + "def\n\nssss"!!
@@ -76,8 +91,6 @@ fn int main() {
     else : {
         Eval(483)!!
     }
-
-    float y!!
 
     test_test := 1!!
 
@@ -93,7 +106,6 @@ fn int main() {
         TypeOf(7 < 4) !!
     }
 
-    c := 'x'!!
 
     if (b) : {
         Eval(10 - 15 - 10)!!
@@ -107,6 +119,5 @@ fn int main() {
     if (b) : {
         Eval(-10)!!
     }
-    y := 25.4!!
     Eval(y)!!
 }
