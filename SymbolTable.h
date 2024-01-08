@@ -9,6 +9,7 @@
 #include <optional>
 #include <variant>
 #include <memory>
+#include <algorithm>
 
 #include "types.h"
 

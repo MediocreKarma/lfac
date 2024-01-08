@@ -104,9 +104,25 @@ SymbolData& SymbolData::assign(const SymbolData& symbol) {
 }
 
 SymbolData& SymbolData::assign(const Value& val) {
+    using namespace TypeNms;
     throwWhenUnassignable(val);
     _isInit = true;
-    _value = val;
+    if (_type != CUSTOM and !_isArray) { // basetype vars/members elements
+        _value = val;
+        return *this;
+    }
+
+    // manual recursive assign. Urasc
+    if (!std::holds_alternative<std::vector<SymbolData>>(_value)) {
+        throw std::runtime_error("Cannot iterate through array or non-base-type symbol" + _name + " in order to assign to it. Something has gone very wrong");
+    }
+
+    auto& vector = std::get<std::vector<SymbolData>>(_value);
+    auto& valueSymbols = std::get<std::vector<SymbolData>>(val);
+    for (size_t i = 0; i < std::min(vector.size(), valueSymbols.size()); ++i) {
+        vector[i].assign(valueSymbols[i].value());
+    }
+
     return *this;
 }
 
@@ -158,7 +174,6 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type Class " + className());
     }
     // initializer list
-    std::cout << "init list\n";
     const std::vector<SymbolData>&  thisData = std::get<std::vector<SymbolData>>(value());
     const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
     if (thisData.size() < otherData.size()) {
@@ -317,12 +332,31 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         out << '\n' << std::string(depth, '\t');
     }
     if (!sd.isFunc()) {
-        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: " << sd.name() << ", in scope " << sd.scope();
+        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: " << sd.name()
+            << ", in scope " << sd.scope();
+        // get base type if not custom
+        
+        
         if (sd.type() == CUSTOM or sd.isArray()) {
             for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
                 printSubsymbol(out, subSymbol, 1);
             }
-        } 
+        }
+        else { //basetype val, for sure... cel putin asa cred
+            const auto val = sd.value();
+            out << ", with value ";
+            if (std::holds_alternative<int>(val)) {
+                out << std::to_string(std::get<int>(val));
+            } else if (std::holds_alternative<bool>(val)) {
+                out << std::get<bool>(val) ? "true" : "false";
+            } else if (std::holds_alternative<char>(val)) {
+                out << std::string(1, std::get<char>(val));
+            } else if (std::holds_alternative<float>(val)) {
+                out << std::to_string(std::get<float>(val));
+            } else if (std::holds_alternative<std::string>(val)) {
+                out << std::get<std::string>(val);
+            } 
+        }
     }
     else {
         out << "Function with type: " << typeToStr(sd._type) << ", name: " << sd.name() << ", in scope " << sd.scope();
@@ -364,6 +398,7 @@ bool SymbolTable::contains(const std::string& name) {
 }
 
 void SymbolTable::print(std::ostream& out) {
+    out << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
     for (const auto& [path, smb] : _table) {
         out << *smb << '\n';
     }

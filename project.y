@@ -509,6 +509,5 @@ int main(int argc, char** argv) {
      /* }
      catch(std::exception& e) {
           yyerror(e.what()); */
-     std::cout << "\n\n--- SYMBOL TABLE ---\n\n" << std::endl;
      symbolTable.print(std::cout);
 } 
