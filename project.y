@@ -482,7 +482,7 @@ expr_list_ext  : expr_list_elem ',' expr_list_ext {
 
 expr_list_elem : expr {$$ = new SymbolData($1->symbol());}
 
-expr : '(' expr ')' {$$ = new AST($2);}
+expr : '(' expr ')' {$$ = $2;}
      | expr PLUS  expr { $$ = new AST(Operation::BinaryOp::PLUS, $1, $3);}
      | expr MINUS expr { $$ = new AST(Operation::BinaryOp::MINUS, $1, $3);}
      | expr  MUL  expr { $$ = new AST(Operation::BinaryOp::MULT, $1, $3);}

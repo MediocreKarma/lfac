@@ -13,7 +13,6 @@ public:
     AST(Operation::BinaryOp op, const AST* left, const AST* right);
     AST(Operation::UnaryOp op, const AST* left);
 
-    AST(const AST* other);
     AST(int literal);
     AST(float literal);
     AST(const char* literal);
@@ -25,9 +24,18 @@ public:
     std::string typeStr() const; // pt typeof 
     std::string valueStr() const; // pt eval
 
-    const SymbolData& symbol() const;
+    SymbolData symbol() const;
+
+    SymbolData evaluate() const;
 
 private:
+
+    SymbolData evaluateUnary() const;
+    SymbolData evaluateBinary() const;
+
     SymbolData _symbol;
+    bool _isOperation = false;
+    int _op;
+    Operation::Type _operationType;
     const AST *_left = nullptr, *_right = nullptr;
 };

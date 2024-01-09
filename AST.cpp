@@ -5,12 +5,6 @@ AST::~AST() {
     delete _right;
 }
 
-AST::AST(const AST* other) {
-    using namespace TypeNms;
-    _symbol = SymbolData(other->_symbol);
-    _left = other;
-}
-
 AST::AST(int literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", INT, SymbolData::Variable);
@@ -45,180 +39,194 @@ AST::AST(const SymbolData& symbol) {
     _symbol = symbol;
 }
 
-AST::AST(Operation::UnaryOp op, const AST* _left) :
-    _symbol(), _left(_left) {
-    
+SymbolData AST::evaluateUnary() const {
     using namespace TypeNms;
     using enum Operation::UnaryOp;
 
-    _symbol.setType(_left->_symbol.type());
+    auto symbol = SymbolData();
+    auto op = static_cast<Operation::UnaryOp>(_op);
+
+    // evaluam doar left
+    auto leftEval = _left->evaluate();
+
+    symbol.setType(leftEval.type());
     if (Operation::booleanOperator(op)) {
         switch (op) {
             case NEGB:
-                if (!std::holds_alternative<bool>(_left->_symbol.value())) {
+                if (!std::holds_alternative<bool>(leftEval.value())) {
                     throw std::invalid_argument("Cannot apply negation operator to a non-boolean value");
                 }
-                _symbol.assign(!std::get<bool>(_left->_symbol.value()));
+                symbol.assign(!std::get<bool>(leftEval.value()));
         }
     }
     else if (Operation::expressionOperator(op)) {
         switch (op) {
             case NEG:
-                switch(_symbol.type()) {
+                switch(symbol.type()) {
                     case INT:
-                        _symbol.assign(-std::get<int>(_left->_symbol.value()));
+                        symbol.assign(-std::get<int>(leftEval.value()));
                         break;
                     case FLOAT:
-                        _symbol.assign(-std::get<float>(_left->_symbol.value()));
+                        symbol.assign(-std::get<float>(leftEval.value()));
                         break;
                     case CHAR:
-                        _symbol.assign(-std::get<char>(_left->_symbol.value()));
+                        symbol.assign(-std::get<char>(leftEval.value()));
                         break;
                     default:
-                        throw std::invalid_argument("Cannot apply unary minus operator to a non-numeric value");
+                        throw std::invalid_argument("Cannot apply unary minus operator to a non-numeric or char value");
                 } 
-
         }
     }
+    return symbol;
 }
 
-AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
-    _left(left), _right(right) {
+AST::AST(Operation::UnaryOp op, const AST* _left) :
+    _symbol(), _left(_left) {
+    
+    _isOperation = true;
+    _op = static_cast<int>(op);
+    _operationType = Operation::Type::UNARY;
+}
 
-    if (_left == nullptr or _right == nullptr) {
-        throw std::runtime_error("Cannot construct binary-op AST with null values");
-    }
-
+SymbolData AST::evaluateBinary() const {
     using namespace TypeNms;
     using enum Operation::BinaryOp;
 
-    // no type casting
-    if (_left->_symbol.type() != _right->_symbol.type()) {
+    if (_left == nullptr or _right == nullptr) {
+        throw std::runtime_error("Cannot evaluate binary-op AST with null values on either side");
+    }
+
+    auto symbol = SymbolData();
+    auto op = static_cast<Operation::BinaryOp>(_op);
+
+    auto leftEval = _left->evaluate();
+    auto rightEval = _right->evaluate();
+
+     // no type casting
+    if (leftEval.type() != rightEval.type()) {
         throw std::runtime_error(std::string(
             "Binary operation using " +
-            typeToStr(_left->_symbol.type()) + 
+            typeToStr(leftEval.type()) + 
             " and " +
-            typeToStr(_right->_symbol.type()) +
+            typeToStr(rightEval.type()) +
             " is not allowed!"
         ).c_str());
     }
-    if (_left->_symbol.value().index() != _right->_symbol.value().index()) {
+    if (leftEval.value().index() != rightEval.value().index()) {
         throw std::runtime_error("std::variant indexes not matching in AST value index evaluation");
     }
-    _symbol.setType(_left->_symbol.type());
-    if (_symbol.type() == BOOL) {
-        // pentru astea e ok ca da tot bool
+    symbol.setType(leftEval.type());
+    if (symbol.type() == BOOL) {
         if (Operation::booleanOperator(op)) {
             switch (op) {
                 case ORB:
-                    _symbol.assign(std::get<bool>(_left->_symbol.value()) || std::get<bool>(_right->_symbol.value()));
+                    symbol.assign(std::get<bool>(leftEval.value()) || std::get<bool>(rightEval.value()));
                     break;
                 case ANDB:
-                    _symbol.assign(std::get<bool>(_left->_symbol.value()) && std::get<bool>(_right->_symbol.value()));
+                    symbol.assign(std::get<bool>(leftEval.value()) && std::get<bool>(rightEval.value()));
                     break;
                 case EQ:
-                    _symbol.assign(std::get<bool>(_left->_symbol.value()) == std::get<bool>(_right->_symbol.value()));
+                    symbol.assign(std::get<bool>(leftEval.value()) == std::get<bool>(rightEval.value()));
                     break;
                 case NEQ:
-                    _symbol.assign(std::get<bool>(_left->_symbol.value()) != std::get<bool>(_right->_symbol.value()));
+                    symbol.assign(std::get<bool>(leftEval.value()) != std::get<bool>(rightEval.value()));
                     break;
                 default: throw std::runtime_error("Invalid boolean operator");;
             }
-            return;
+            
         }
         throw std::runtime_error("Invalid operation for boolean type");
     }
     else {
         if (Operation::conversionOperator(op)) {
-            auto oldType = _symbol.type();
-            _symbol.setType(BOOL);
+            auto oldType = symbol.type();
+            symbol.setType(BOOL);
             switch (op) {
                 case LT:
                     switch (oldType) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) < std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) < std::get<float>(_right->_symbol.value())); break;
-                        case STRING: _symbol.assign(std::get<std::string>(_left->_symbol.value()) < std::get<std::string>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) < std::get<char>(_right->_symbol.value())); break;
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) < std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) < std::get<float>(rightEval.value())); break;
+                        case STRING: symbol.assign(std::get<std::string>(leftEval.value()) < std::get<std::string>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) < std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case LEQ:
                     switch (oldType) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) <= std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) <= std::get<float>(_right->_symbol.value())); break;
-                        case STRING: _symbol.assign(std::get<std::string>(_left->_symbol.value()) <= std::get<std::string>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) <= std::get<char>(_right->_symbol.value())); break;
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) <= std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) <= std::get<float>(rightEval.value())); break;
+                        case STRING: symbol.assign(std::get<std::string>(leftEval.value()) <= std::get<std::string>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) <= std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case GT:
                     switch (oldType) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) > std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) > std::get<float>(_right->_symbol.value())); break;
-                        case STRING: _symbol.assign(std::get<std::string>(_left->_symbol.value()) > std::get<std::string>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) > std::get<char>(_right->_symbol.value())); break;
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) > std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) > std::get<float>(rightEval.value())); break;
+                        case STRING: symbol.assign(std::get<std::string>(leftEval.value()) > std::get<std::string>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) > std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case GEQ:
                     switch (oldType) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) >= std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) >= std::get<float>(_right->_symbol.value())); break;
-                        case STRING: _symbol.assign(std::get<std::string>(_left->_symbol.value()) >= std::get<std::string>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) >= std::get<char>(_right->_symbol.value())); break;
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) >= std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) >= std::get<float>(rightEval.value())); break;
+                        case STRING: symbol.assign(std::get<std::string>(leftEval.value()) >= std::get<std::string>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) >= std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case EQ:
-                    _symbol.assign(_left->_symbol.value() == _right->_symbol.value());
+                    symbol.assign(leftEval.value() == rightEval.value());
                     break;
                 case NEQ:
-                    _symbol.assign(_left->_symbol.value() != _right->_symbol.value());
+                    symbol.assign(leftEval.value() != rightEval.value());
                     break;
                 default: throw std::runtime_error("Invalid conversion operator");
             }
-            return;
         }
         if (Operation::expressionOperator(op)) {
             switch (op) {
                 case PLUS:
-                    switch (_symbol.type()) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) + std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) + std::get<float>(_right->_symbol.value())); break;
-                        case STRING: _symbol.assign(std::get<std::string>(_left->_symbol.value()) + std::get<std::string>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) + std::get<char>(_right->_symbol.value())); break;
+                    switch (symbol.type()) {
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) + std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) + std::get<float>(rightEval.value())); break;
+                        case STRING: symbol.assign(std::get<std::string>(leftEval.value()) + std::get<std::string>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) + std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MINUS:
-                    switch (_symbol.type()) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) - std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) - std::get<float>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) - std::get<char>(_right->_symbol.value())); break;
+                    switch (symbol.type()) {
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) - std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) - std::get<float>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) - std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case MULT:
-                    switch (_symbol.type()) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) * std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) * std::get<float>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) * std::get<char>(_right->_symbol.value())); break;
+                    switch (symbol.type()) {
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) * std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) * std::get<float>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) * std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case DIV:
-                    switch (_symbol.type()) {
-                        case INT: _symbol.assign(std::get<int>(_left->_symbol.value()) / std::get<int>(_right->_symbol.value())); break;
-                        case FLOAT: _symbol.assign(std::get<float>(_left->_symbol.value()) / std::get<float>(_right->_symbol.value())); break;
-                        case CHAR: _symbol.assign(std::get<char>(_left->_symbol.value()) / std::get<char>(_right->_symbol.value())); break;
+                    switch (symbol.type()) {
+                        case INT: symbol.assign(std::get<int>(leftEval.value()) / std::get<int>(rightEval.value())); break;
+                        case FLOAT: symbol.assign(std::get<float>(leftEval.value()) / std::get<float>(rightEval.value())); break;
+                        case CHAR: symbol.assign(std::get<char>(leftEval.value()) / std::get<char>(rightEval.value())); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
                 case POW:
-                    switch (_symbol.type()) {
-                        case INT: _symbol.assign(static_cast<int>(std::pow(std::get<int>(_left->_symbol.value()), std::get<int>(_right->_symbol.value())))); break;
-                        case FLOAT: _symbol.assign(static_cast<float>(std::pow(std::get<float>(_left->_symbol.value()), std::get<float>(_right->_symbol.value())))); break;
-                        case CHAR: _symbol.assign(static_cast<char>(std::pow(std::get<char>(_left->_symbol.value()), std::get<char>(_right->_symbol.value())))); break;
+                    switch (symbol.type()) {
+                        case INT: symbol.assign(static_cast<int>(std::pow(std::get<int>(leftEval.value()), std::get<int>(rightEval.value())))); break;
+                        case FLOAT: symbol.assign(static_cast<float>(std::pow(std::get<float>(leftEval.value()), std::get<float>(rightEval.value())))); break;
+                        case CHAR: symbol.assign(static_cast<char>(std::pow(std::get<char>(leftEval.value()), std::get<char>(rightEval.value())))); break;
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
@@ -227,20 +235,50 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
             }
         }
     } 
+
+    return symbol;
+}
+
+AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
+    _left(left), _right(right) {
+
+    _isOperation = true;
+    _op = static_cast<int>(op);
+    _operationType = Operation::Type::BINARY;
 }
 
 std::string AST::typeStr() const {
     using namespace TypeNms;
-    if (_symbol.type() == CUSTOM) {
+    auto symbol = evaluate();
+
+    if (symbol.type() == CUSTOM) {
         return "Custom type";
     }
-    return TypeNms::typeToStr(_symbol.type());
+    return TypeNms::typeToStr(symbol.type());
 }
 
 std::string AST::valueStr() const {
-    return _symbol.valueStr();
+    return evaluate().valueStr();
 }
 
-const SymbolData& AST::symbol() const {
-    return _symbol;
+SymbolData AST::symbol() const {
+    return evaluate();
+}
+
+SymbolData AST::evaluate() const {
+    using enum Operation::Type;
+
+    if (!_isOperation) {
+        // return value of currently held symbol
+        return _symbol;
+    }
+    else {
+        switch(_operationType) {
+            case UNARY :
+                return evaluateUnary();
+            case BINARY:
+                return evaluateBinary();
+            default: throw "Unavailable operation type";
+        }
+    }
 }

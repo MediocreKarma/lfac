@@ -14,6 +14,11 @@ namespace TypeNms {
 }
 
 namespace Operation {
+    enum class Type {
+        BINARY,
+        UNARY
+    };
+
     enum class BinaryOp {
         PLUS,
         MINUS,
