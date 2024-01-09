@@ -27,20 +27,12 @@ bool Scope::encompassingScope(const std::string& active, const std::string& enco
     return active.find(encompassing) != std::string::npos;
 }
 
-SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size, const std::string& className) {
+SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const std::vector<size_t>& sizes, const SymbolData* classDef) {
     _scope = scope;
     _name = name;
     _type = t;
-    _isArray = (size > 0);
-    if (_isArray) {
-        std::vector<SymbolData> vec;
-        for (size_t i = 0; i < size; ++i) {
-            vec.reserve(size);
-            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, 0, className);
-        }
-        _value = vec;
-    }
-    _isInit = false;
+    _sizes = sizes;
+    _isArray = (sizes.empty() == false);
     switch (f) {
         case Constant:
             _isConst = true;
@@ -52,14 +44,31 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
             _isClassDef = true;
             break;
     }
-    if (t == CUSTOM or _isFunc or _isClassDef) {
+    if (_isArray == false and (t == CUSTOM or _isFunc or _isClassDef)) {
         _value = std::vector<SymbolData>();
     }
-    if (t == CUSTOM) {
-        _className = className;
+    if (_isArray) {
+        std::vector<SymbolData> vec;
+        vec.reserve(sizes.front());
+        for (size_t i = 0; i < sizes.front(); ++i) {
+            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+        }
+        _value = vec;
     }
-    else if (!className.empty()) {
-        throw std::invalid_argument("Custom class name given for non-class-instance type symbol");
+    _isInit = false;
+    if (t == CUSTOM) {
+        if (classDef == nullptr) {
+            std::cout << *this << '\n';
+            if (_isClassDef) {
+                _className = name;
+            }
+            else {
+                throw std::logic_error("Custom type constructed without any class-instance template");
+            }
+        }
+        else {
+            _className = classDef->name();
+        }
     }
 }
 
@@ -386,8 +395,14 @@ std::string SymbolData::valueStr() const {
 
 // --- SymbolTable ---
 
-SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
-    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, size, className));
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, sizes));
+    _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
+    return *this;
+}
+
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes, const SymbolData* className) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, sizes, className));
     _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
     return *this;
 }
@@ -400,7 +415,7 @@ SymbolTable& SymbolTable::add(const SymbolData& symbol) {
 }
 
 SymbolTable& SymbolTable::addClass(const std::string& name) {
-    _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0, name));
+    _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class));
     _orderedClassesTable.push_back(_classesTable.at(name).get());
     return *this;
 }

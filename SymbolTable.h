@@ -36,7 +36,7 @@ public:
     };
 
     SymbolData() = default;
-    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, size_t size = 0, const std::string& className = "");
+    SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, const std::vector<size_t>& sizes = {}, const SymbolData* classDef = nullptr);
     SymbolData(const std::string& scope, const std::string& name, TypeNms::Type type, Flag flag, const Value& value);
     SymbolData(const SymbolData&) = default;
     SymbolData(SymbolData&&) = default;
@@ -93,6 +93,7 @@ private:
     // pt classInstances ca sa stie ce clasa is daca-s tip custom...
     // ca ne trebuie cand afisam type ul in symboltable
     std::string _className;
+    std::vector<size_t> _sizes;
 
     Value _value;
 
@@ -103,7 +104,8 @@ private:
 class SymbolTable {
 public:
     SymbolTable() = default;
-    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, size_t size = 0, const std::string& className = "");
+    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes = {});
+    SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes, const SymbolData* classDef);
     SymbolTable& add(const SymbolData& data);
     SymbolTable& remove(const SymbolData& data);
     bool contains(const std::string& name);

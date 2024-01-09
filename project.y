@@ -16,6 +16,11 @@ struct SymbolList {
      SymbolData* symbol;
 };
 
+struct SizeList {
+     SizeList* next;
+     size_t size;
+};
+
 class SymbolTable symbolTable;
 %}
 %union {
@@ -28,11 +33,12 @@ class SymbolTable symbolTable;
      class AST* astNode;
      struct SymbolList* list;
      class SymbolData* symbolValue;
+     struct SizeList* sizeList;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
 %token SEP ASSIGN DEF DECL MEMBERS MEMBER
 %token WHILE FOR IF ELSE DO RETURN EVAL TYPEOF
-%token CLASS CONST ARRAY FN SELF
+%token CLASS CONST FN SELF
 %token<idValue> TYPE ID
 %token<stringValue> STRINGVAL
 %token<intValue> INTVAL
@@ -43,7 +49,7 @@ class SymbolTable symbolTable;
 %type<list> list_param fn_param
 %type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext expr_list_elem
 %type<list> class_members class_members1
-
+%type<sizeList> index_list
 
 %right ASSIGN
 %left ANDB ORB
@@ -165,14 +171,15 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                               delete ptr;
                               ptr = next;
                          }
-                         if (symbolTable.findClass($3) == nullptr) {
+                         SymbolData* classDef = symbolTable.findClass($3);
+                         if (classDef == nullptr) {
                               yyerror(std::string("Cannot declare function ") + $4 + " with undeclared class return-type " + $3);
                          }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($4)) {
                               yyerror(std::string("Function declaration invalid because symbol ") + $4 + " already exists in same scope");
                          }
-                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, 0, $3);
+                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, {}, classDef);
                          $$ = symbolTable.find(symbolTable.currentScope() + $4);
                          for (const auto& sym : symbols) {
                               $$->addSymbol(sym);
@@ -204,6 +211,7 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          }
                     }
                     | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' '{' statement_list '}' {
+                         SymbolData* classDef = symbolTable.findClass($3);
                          SymbolList* ptr = $7;
                          std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
@@ -218,7 +226,7 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          if (fnData == nullptr) {
                               yyerror(std::string("No function ") + $4 + " exists in current scope");
                          }
-                         SymbolData tempFnSymbol(symbolTable.currentScope(), $4, TypeNms::Type::CUSTOM, SymbolData::Flag::Function, 0, $3);
+                         SymbolData tempFnSymbol(symbolTable.currentScope(), $4, TypeNms::Type::CUSTOM, SymbolData::Flag::Function, {}, classDef);
                          for (const auto& sym : symbols) {
                               tempFnSymbol.addSymbol(sym);
                          }
@@ -270,14 +278,23 @@ decl_only: TYPE ID {
                symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
-          | ARRAY TYPE ID '[' INTVAL ']' {
-               if(symbolTable.contains($3)) {
-                    yyerror(std::string("Array type symbol could not be created because symbol ") + $3 + " already exists in same scope");
+          | TYPE ID index_list {
+               if(symbolTable.contains($2)) {
+                    yyerror(std::string("Array type symbol could not be created because symbol ") + $2 + " already exists in same scope");
                }
-               symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, $5, "");
-               $$ = symbolTable.find(symbolTable.currentScope() + $3);
+               std::vector<size_t> indexes;
+               SizeList* ptr = $3;
+               while (ptr != nullptr) {
+                    indexes.push_back(ptr->size);
+                    SizeList* next = ptr->next;
+                    delete ptr;
+                    ptr = next;
+               }
+               symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable, indexes);
+               $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
-          | CLASS ID ID  {
+          | CLASS ID ID {
+               std::cout << "here\n";
                if(symbolTable.contains($3)) {
                     yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists in same scope");
                }
@@ -287,6 +304,26 @@ decl_only: TYPE ID {
                }
                SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $3);
                symbolTable.add(symbol);
+               $$ = symbolTable.find(symbolTable.currentScope() + $3);
+               std::cout << "here\n";
+          }
+          | CLASS ID ID index_list {
+               SymbolData* classDef = symbolTable.findClass($2);
+               if (classDef == nullptr) {
+                    yyerror(std::string("Cannot initialize class of undefined class ") + $2);
+               } 
+               if(symbolTable.contains($3)) {
+                    yyerror(std::string("Array type symbol could not be created because symbol ") + $3 + " already exists in same scope");
+               }
+               std::vector<size_t> indexes;
+               SizeList* ptr = $4;
+               while (ptr != nullptr) {
+                    indexes.push_back(ptr->size);
+                    SizeList* next = ptr->next;
+                    delete ptr;
+                    ptr = next;
+               }
+               symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable, indexes, classDef);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
 
@@ -339,9 +376,20 @@ decl_assign    : TYPE ID ASSIGN expr {
                     delete $6;
                }
                // todo: do these
-               | ARRAY ID ID ASSIGN initializer_list {}
-               | CONST ARRAY ID ID ASSIGN initializer_list {}
+               //| ID ID ASSIGN initializer_list {}
+               //| CONST ID ID ASSIGN initializer_list {}
 
+index_list: '[' INTVAL ']' {
+               $$ = new SizeList;
+               $$->next = nullptr;
+               $$->size = $2;
+          }
+          | '[' INTVAL ']' index_list {
+               $$ = new SizeList;
+               $$->next = $4;
+               $$->size = $2;
+          }
+          ;
 
 
 fn_param  : list_param { $$ = $1; }

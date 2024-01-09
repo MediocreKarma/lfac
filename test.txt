@@ -18,7 +18,7 @@ def {
 
 class B {
     members {
-        class A a := {3, 4}.
+        class A a.
         int b.
     }
     decl {
@@ -32,8 +32,5 @@ class B {
 ENDCLASSES
 
 fn int main() { 
-    string str := "\naaa".
-    class B b.
-    Eval(!!(b->a->x == 3)).
-    Eval(b->a->f(1)).
+    class A arr[1][1][1][1][1].
 }

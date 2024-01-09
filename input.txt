@@ -126,7 +126,7 @@ fn int main() {
     }
     Eval(y).
 
-    array int bbb[10].
+    int bbb[10].
     bbb[2] := 75.
     
     

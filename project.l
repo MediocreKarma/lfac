@@ -10,7 +10,6 @@
 "int"|"float"|"char"|"string"|"bool" {yylval.stringValue = strdup(yytext); return TYPE;}
 "const" {return CONST;}
 "class" {return CLASS;}
-"array" {return ARRAY;}
 "self" {return SELF;}
 "members" {return MEMBERS;}
 "fn" {return FN;}
