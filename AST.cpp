@@ -45,6 +45,10 @@ AST::AST(const SymbolData& symbol) {
     _type = _symbol.type();
 }
 
+TypeNms::Type AST::type() const {
+    return _type;
+}
+
 SymbolData AST::evaluateUnary() const {
     using namespace TypeNms;
     using enum Operation::UnaryOp;

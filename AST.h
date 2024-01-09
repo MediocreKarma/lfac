@@ -20,6 +20,7 @@ public:
     AST(bool literal);
     AST(const SymbolData& symbol);
 
+    TypeNms::Type type() const;
 
     std::string typeStr() const; // pt typeof 
     std::string valueStr() const; // pt eval

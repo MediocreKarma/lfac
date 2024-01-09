@@ -41,7 +41,7 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext expr_list_elem
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext expr_list_elem function_call
 %type<list> class_members class_members1
 
 
@@ -374,18 +374,18 @@ sep_stmt  : assignment {}
           */}
           | decl_assign {}
           | decl_only {}
-          | function_call {}
+          | function_call { delete $1; }
           | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->valueStr() << "\033[0m\n";}
           | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
-          | DO ':' block WHILE expr {if ($5->symbol().type() != TypeNms::BOOL) {yyerror("Condition of do-while loop has to be of boolean type");}} 
+          | DO ':' block WHILE expr {if ($5->type() != TypeNms::BOOL) {yyerror("Condition of do-while loop has to be of boolean type");}} 
 
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
-               | WHILE expr { if ($2->symbol().type() != TypeNms::BOOL) {yyerror("Condition of while loop has to be of boolean type");}}':' block
-               | FOR assignment {} SEP expr { if ($5->symbol().type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block
+               | WHILE expr { if ($2->type() != TypeNms::BOOL) {yyerror("Condition of while loop has to be of boolean type");}}':' block
+               | FOR assignment {} SEP expr { if ($5->type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block
                | block {}
 
-if_expr   : IF expr {  if ($2->symbol().type() != TypeNms::BOOL) {yyerror("Condition of if expression has to be of boolean type");}} ':' block
+if_expr   : IF expr {  if ($2->type() != TypeNms::BOOL) {yyerror("Condition of if expression has to be of boolean type");}} ':' block
           ;
 
 assignment: identifier ASSIGN expr {
@@ -414,6 +414,11 @@ function_call  : ID '(' expr_list ')' {
                               yyerror(std::string("Cannot call function ") + fxnSymbol->name() + " with parameter at position " + std::to_string(i) + " of type " + TypeNms::typeToStr( exprVal[i].type()));
                          }
                     }
+
+                    auto type = fxnSymbol->type();
+                    auto className = fxnSymbol->className();
+                    // trebuie schimbat apelul de functie pt vector<size_t>!!!
+                    $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, 0, className);
                }
                | identifier MEMBER ID '(' expr_list ')' {
                     if ($1->type() != TypeNms::CUSTOM) {
@@ -441,6 +446,11 @@ function_call  : ID '(' expr_list ')' {
                               yyerror(std::string("Cannot call function ") + methodSymbol->name() + " with parameter at position " + std::to_string(i) + " of type " + TypeNms::typeToStr( exprVal[i].type()));
                          }
                     }
+                    
+                    auto type = methodSymbol->type();
+                    auto methodSymClassname = methodSymbol->className();
+                    // trebuie schimbat apelul de functie pt vector<size_t>!!!
+                    $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, 0, methodSymClassname);
                }
                ;
         
@@ -505,7 +515,37 @@ expr : '(' expr ')' {$$ = $2;}
      | CHARVAL { $$ = new AST($1); }
      | assignment { $$ = new AST(*$1);}
      | identifier { $$ = new AST(*$1);}
-     | function_call {$$ = new AST((int)0);}
+     | function_call {
+          const auto& symbol = *$1;
+          auto type = symbol.type();
+          // creem default symbol based on function type
+          switch(type) {
+               using namespace TypeNms;
+               case INT:
+                    $$ = new AST((int)0);
+                    break;
+               case BOOL:
+                    $$ = new AST((bool)0);
+                    break;
+               case CHAR:
+                    $$ = new AST((char)0);
+                    break;
+               case STRING:
+                    $$ = new AST((const char*)"");
+                    break;
+               case FLOAT:
+                    $$ = new AST((float)0);
+                    break;
+               case CUSTOM:
+                    auto classDef = *(symbolTable.findClass(symbol.className()));
+                    auto defaultSymbol = classDef.instantiateClass("", "");
+                    $$ = new AST(defaultSymbol);
+                    break;
+
+          }
+
+          delete $1;
+     }
      ;
 
 %%
