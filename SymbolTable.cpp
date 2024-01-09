@@ -34,7 +34,12 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
     _type = t;
     _isArray = (size > 0); // e mai usor de citit daca pui o expr de genu n paranteza
     if (_isArray) {
-        _value = std::vector<SymbolData>(size, SymbolData(scope, "", t, f));
+        std::vector<SymbolData> vec;
+        for (size_t i = 0; i < size; ++i) {
+            vec.reserve(size);
+            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, 0, className);
+        }
+        _value = vec;
     }
     _isInit = false;
     switch (f) {
@@ -78,7 +83,7 @@ SymbolData& SymbolData::setType(TypeNms::Type type) {
 }
 
 SymbolData& SymbolData::assign(const SymbolData& symbol) {
-    throwWhenUnassignable(symbol.value()); // ..?? oare trebuie si aici? todo: check
+    throwWhenUnassignable(symbol.value());
     if (sameType(*this, symbol) == false) {
         std::string from  = TypeNms::typeToStr(symbol.type());
         std::string to    = TypeNms::typeToStr(type());
@@ -203,8 +208,8 @@ SymbolData& SymbolData::addSymbolToBeginning(const SymbolData& symbol) {
     if (_isArray or !std::holds_alternative<std::vector<SymbolData>>(_value)) {
         throw std::runtime_error("Cannot add symbol to symbol " + _name + " that does not hold other symbols");
     }
-    auto& vector = std::get<std::vector<SymbolData>>(_value);
-    vector.insert(vector.begin(), symbol);
+    std::vector<SymbolData>& vec = std::get<std::vector<SymbolData>>(_value);
+    vec.insert(vec.begin(), symbol);
     return *this;
 }
 
@@ -291,7 +296,7 @@ SymbolData* SymbolData::member(const size_t index) {
     }
     std::vector<SymbolData>* vec = std::get_if<std::vector<SymbolData>>(&_value);
     if (index >= vec->size()) {
-        throw std::invalid_argument("Index out of bounds");
+        return nullptr;
     }
     return &(*vec)[index];
 }
@@ -341,7 +346,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         
         if (sd.type() == CUSTOM or sd.isArray()) {
             for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
-                printSubsymbol(out, subSymbol, 1);
+                printSubsymbol(out, subSymbol, depth + 1);
             }
         }
         else { //basetype val, for sure... cel putin asa cred
@@ -350,9 +355,9 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         }
     }
     else {
-        out << "Function with type: " << typeToStr(sd._type) << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
+        out << "Function with type: " << typeToStr(sd._type) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
         for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
-            printSubsymbol(out, subSymbol, 1);
+            printSubsymbol(out, subSymbol, depth + 1);
         }
     }
 }
@@ -427,6 +432,10 @@ bool SymbolTable::contains(const std::string& name) {
 }
 
 void SymbolTable::print(std::ostream& out) {
+    out << "\n--- CLASS TABLE ---\n" << std::endl;
+    for (const auto smb : _orderedClassesTable) {
+        out << *smb << '\n';
+    }
     out << "\n--- SYMBOL TABLE ---\n" << std::endl;
     for (const auto smb : _orderedTable) {
         out << *smb << '\n';

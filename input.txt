@@ -2,15 +2,15 @@ CLASSES
 
 class My {
     members {
-        int xy!!
-        int xx!!
+        int xy.
+        int xx.
     }
     decl {
-        fn int scopeFunction(int x)!!
+        fn int scopeFunction(int x).
     }
     def {
         fn int scopeFunction(int x) {
-            string new!!
+            string new.
         }
     }
 }
@@ -19,111 +19,113 @@ class My {
 ENDCLASSES
 
 GLOBALS
-int x!!
-int y!!
+int x.
+int y.
 
 
-class My mine!!!!!!!!!!
+class My mine.....
 
-string str!!
-char cha!!
-bool b!!
-const char constC := 'a'!!!!
+string str.
+char cha.
+bool b.
+const char constC := 'a'..
 ENDGLOBALS
 
 FUNCTIONS
 decl {
-    fn int function(int param1, char param2)!!
-    fn class My function2(string randParam, class My param2)!!
-    fn int fxn(int x, int y)!!
+    fn int function(int param1, char param2).
+    fn class My function2(string randParam, class My param2).
+    fn int fxn(int x, int y).
 }
 def {
     fn int function(int randParam, char randParam2) {
-        int newVar!!!!
+        int newVar..
     }
 
     fn class My function2(string randParam, class My param2) {
-        char newVar2!!!!!!
+        char newVar2...
     }
 
     fn int fxn(int x, int y) {
-        Eval(5)!!
+        Eval(5).
     }
 }
 ENDFUNCTIONS
 
 fn int main() { 
 
-    class My elem := {function(2, 3), 69}!!
-    Eval(elem.xy)!!
-    Eval(elem.xx)!!
+    class My elem := {function(2, 3), 69}.
+    Eval(elem->xy).
+    Eval(elem->xx).
 
-    x := 6 + 5!!
+    x := 6 + 5.
     
-    fxn(1, 2)!!
+    fxn(1, 2).
 
-    mine.scopeFunction(1)!!
+    mine->scopeFunction(1).
     
-    Eval(fxn(1, 2))!!
+    Eval(fxn(1, 2)).
 
     do : {
-        Eval(3)!!
+        Eval(3).
     }
-    while 3 + 5 < 5!!
+    while 3 + 5 < 5.
 
-    Eval(3+5 < 5)!!
+    Eval(3+5 < 5).
 
 
-    y := (6 - 243)/ 15 + 3!!
-    Eval(y)!!
-    float y!!
-    y := 25.4!!
-    Eval(y)!!
+    y := (6 - 243)/ 15 + 3.
+    Eval(y).
+    float y.
+    y := 25.4.
+    Eval(y).
 
-    b := true !!!!
+    b := true ..
 
   
-    cha := '\n'!!
+    cha := '\n'.
 
-    str := "abc\"def" + "def\n\nssss"!!
-    int test_test!!
+    str := "abc\"def" + "def\n\nssss".
+    int test_test.
     if 2 < 3 : {
-        Eval(247)!!
+        Eval(247).
     } 
     else : {
-        Eval(483)!!
+        Eval(483).
     }
 
-    test_test := 1!!
+    test_test := 1.
 
-    str := "aa"!!!!!!
-    class My yours!!
+    str := "aa"...
+    class My yours.
 
-    for x := 5 !! x < 23 !! x := x + 1 : {
-        Eval(2 + 5)!!
+    for x := 5 . x < 23 . x := x + 1 : {
+        Eval(2 + 5).
     }
 
     while x < 25 : {
-        Eval(7 < 4) !!
-        TypeOf(7 < 4) !!
+        Eval(7 < 4) .
+        TypeOf(7 < 4) .
     }
 
 
     if (b) : {
-        Eval(10 - 15 - 10)!!
-        TypeOf(7 < 4) !!
+        Eval(10 - 15 - 10).
+        TypeOf(7 < 4) .
     }
     else : {
-        Eval(1 + 2)!!
-        Eval(3 > 5)!!
+        Eval(1 + 2).
+        Eval(3 > 5).
     }
     
     if (b) : {
-        Eval(-10)!!
+        Eval(-10).
     }
-    Eval(y)!!
+    Eval(y).
 
-    array int bbb[10]!!
-    bbb[2] := 75!!
-    Eval(bbb[2])!!
+    array int bbb[10].
+    bbb[2] := 75.
+    
+    
+    Eval(bbb[2]).
 }

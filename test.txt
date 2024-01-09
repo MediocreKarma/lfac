@@ -2,22 +2,38 @@ CLASSES
 
 class A {
 members {
-    int x := 3!!
-    int y!!
+    int x := 3.
+    int y.
 }
 decl {
-    fn int f(int k)!!
+    fn int f(int k).
 }
 def {
     fn int f(int k) {
-
+        self->x := 1.
     }
 }
 
 }
 
+class B {
+    members {
+        class A a := {3, 4}.
+        int b.
+    }
+    decl {
+
+    }
+    def {
+
+    }
+}
+
 ENDCLASSES
 
 fn int main() { 
-    class A a := {3, 4}!!
+    string str := "\naaa".
+    class B b.
+    Eval(!!(b->a->x == 3)).
+    Eval(b->a->f(1)).
 }

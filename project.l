@@ -16,6 +16,7 @@
 "fn" {return FN;}
 "decl" {return DECL;}
 "def" {return DEF;}
+(\.)+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
 
 "CLASSES" {return CLASSES;}
 "ENDCLASSES" {return ENDCLASSES;}
@@ -29,7 +30,7 @@
 "TypeOf" {return TYPEOF;}
 
 ":=" {return ASSIGN;}
-(!!)+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
+"->" {return MEMBER;}
 
 "if" {return IF;}
 "else" {return ELSE;}
@@ -43,8 +44,6 @@
 "/" {return DIV;}
 "*" {return MUL;}
 "**" {return POW;}
-"++" {return INCREMENT;}
-"--" {return DECREMENT;}
 
 "<=" {return LEQ;}
 ">=" {return GEQ;}
@@ -59,7 +58,8 @@
 "true" {yylval.boolValue = true; return BOOLVAL;}
 "false" {yylval.boolValue = false; return BOOLVAL;}
 [a-zA-Z_][_a-zA-Z0-9]* {yylval.stringValue = strdup(yytext); return ID;}
-[1-9][0-9]*\.[0-9]* {yylval.floatValue = atof(yytext); return FLOATVAL;}
+[0-9]+\.[0-9]+ {yylval.floatValue = atof(yytext); return FLOATVAL;}
+\.[0-9]+ {yylval.floatValue = atof(yytext); return FLOATVAL;}
 [1-9][0-9]* {yylval.intValue = atol(yytext); return INTVAL;}
 \"([^\"\n\0\t\r\\\a\b\f\v]|"\\\""|"\\0"|"\\n"|"\\t"|"\\r"|"\\'"|"\\\\"|"\\a"|"\\b"|"\\f"|"\\v")*\" { yylval.stringValue = Utils::preprocessStringLiteral(yytext); return STRINGVAL;}
 \'([^\n\0\t\r\\\a\b\f\v]|"\\\""|"\\0"|"\\n"|"\\t"|"\\r"|"\\'"|"\\\\"|"\\a"|"\\b"|"\\f"|"\\v")\' {yylval.charValue = Utils::preprocessCharLiteral(yytext); return CHARVAL;}
