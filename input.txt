@@ -54,7 +54,7 @@ ENDFUNCTIONS
 
 fn int main() { 
 
-    class My elem := {function(2, 3), 69}.
+    class My elem := {function(function(3, 'a'), 'b'), 5}.
     Eval(elem->xy).
     Eval(elem->xx).
 

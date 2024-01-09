@@ -32,7 +32,7 @@ public:
     using Value = std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>;
 
     enum Flag {
-        Variable, Constant, Function, Class // eu zic ca trebe
+        Variable, Constant, Function, Class
     };
 
     SymbolData() = default;
@@ -48,8 +48,8 @@ public:
     SymbolData& assign(const Value& value);
     SymbolData& assign(const SymbolData& val);
 
-    SymbolData& addSymbolToBeginning(const SymbolData&); // pt functii/clase...?
-    SymbolData& addSymbol(const SymbolData&); // pt functii/clase...?
+    SymbolData& addSymbolToBeginning(const SymbolData&); // pt functii/clase
+    SymbolData& addSymbol(const SymbolData&); // pt functii/clase
     
     std::string name() const;
     std::string scope() const;

@@ -16,7 +16,7 @@
 "fn" {return FN;}
 "decl" {return DECL;}
 "def" {return DEF;}
-(\.)+ {return SEP; /* sa putem avea cate semne de exclamare vrem */}
+(\.)+ {return SEP;}
 
 "CLASSES" {return CLASSES;}
 "ENDCLASSES" {return ENDCLASSES;}

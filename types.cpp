@@ -32,13 +32,10 @@ std::string TypeNms::typeToStr(const Type type) {
             return "Class";
             break;
     }
-    // unreachable
     throw "Invalid argument";
 }
 
-// manipulate booleans
 bool Operation::booleanOperator(const BinaryOp op) {
-    // I love using c++20 features xD
     using enum BinaryOp;
     return std::unordered_set<BinaryOp>{
         ORB, ANDB, EQ, NEQ
@@ -52,7 +49,6 @@ bool Operation::booleanOperator(const UnaryOp op) {
     }.contains(op);
 }
 
-// cast to boolean
 bool Operation::conversionOperator(const BinaryOp op) {
     using enum BinaryOp;
     return std::unordered_set<BinaryOp>{
@@ -60,7 +56,6 @@ bool Operation::conversionOperator(const BinaryOp op) {
     }.contains(op);
 }
 
-// same type result
 bool Operation::expressionOperator(const BinaryOp op) {
     return !booleanOperator(op) && !conversionOperator(op);
 }

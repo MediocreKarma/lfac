@@ -1,8 +1,6 @@
 #include "Utils.h"
 
 char* Utils::preprocessStringLiteral(const char* input) {
-    // acum as putea clar sa le fac std::string dar mi e sila
-    // daca ti trebe n alta parte sau le muti din lex le folosesti pe astea si dai si tu free lol
     if (input == NULL) {
         return NULL;
     }

@@ -5,8 +5,6 @@
 #include <variant>
 #include <unordered_map>
 #include <unordered_set>
-
-// find better naming? TypeNamespace xd
 namespace TypeNms {
     enum Type {
         INT, FLOAT, CHAR, STRING, BOOL, CUSTOM

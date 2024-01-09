@@ -1,6 +1,6 @@
 #pragma once
 
-extern int yylineno; // ca sa putem printa warninguri care-mi spun si linia. Nu le putem face exceptii pt ca nu sunt exceptii
+extern int yylineno;
 
 #include <string>
 #include <iostream>

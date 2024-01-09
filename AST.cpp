@@ -5,18 +5,9 @@ AST::~AST() {
     delete _right;
 }
 
-// AST::AST(const SymbolData* other) {
-//     using namespace TypeNms;
-//     symbol = other->symbol;
-//     symbol._symbol.setType(other->symbol.type());
-//     _value._symbol.assign(other->_symbol.value();
-//     _left = other;
-// }
-
 AST::AST(const AST* other) {
     using namespace TypeNms;
     _symbol = SymbolData(other->_symbol);
-    // sper ca e suficient
     _left = other;
 }
 
@@ -133,16 +124,14 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
                     break;
                 default: throw std::runtime_error("Invalid boolean operator");;
             }
-            // good
             return;
         }
         throw std::runtime_error("Invalid operation for boolean type");
     }
     else {
         if (Operation::conversionOperator(op)) {
-            // pentru astea tre sa putem asigna bool-uri deci trb oblig schimbat tipu
             auto oldType = _symbol.type();
-            _symbol.setType(BOOL); // altfel nu merg asignarile...
+            _symbol.setType(BOOL);
             switch (op) {
                 case LT:
                     switch (oldType) {
@@ -188,11 +177,9 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
                     break;
                 default: throw std::runtime_error("Invalid conversion operator");
             }
-            // good
             return;
         }
         if (Operation::expressionOperator(op)) {
-            // astea cred ca s ok asa
             switch (op) {
                 case PLUS:
                     switch (_symbol.type()) {
@@ -227,7 +214,7 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
                         default: throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
                     }
                     break;
-                case POW: // what do you mean pow pt char-uri??? what do you mean div pt char-uri??? de ce exista???????
+                case POW:
                     switch (_symbol.type()) {
                         case INT: _symbol.assign(static_cast<int>(std::pow(std::get<int>(_left->_symbol.value()), std::get<int>(_right->_symbol.value())))); break;
                         case FLOAT: _symbol.assign(static_cast<float>(std::pow(std::get<float>(_left->_symbol.value()), std::get<float>(_right->_symbol.value())))); break;

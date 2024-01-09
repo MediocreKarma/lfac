@@ -28,11 +28,10 @@ bool Scope::encompassingScope(const std::string& active, const std::string& enco
 }
 
 SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size, const std::string& className) {
-    // trebe cumva si numele clasei dat tho ca sa stie de care tip de clasa e
     _scope = scope;
     _name = name;
     _type = t;
-    _isArray = (size > 0); // e mai usor de citit daca pui o expr de genu n paranteza
+    _isArray = (size > 0);
     if (_isArray) {
         std::vector<SymbolData> vec;
         for (size_t i = 0; i < size; ++i) {
@@ -53,7 +52,7 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
             _isClassDef = true;
             break;
     }
-    if (t == CUSTOM or _isFunc or _isClassDef) { // daca e class instance, sau func, sau classdef... either way
+    if (t == CUSTOM or _isFunc or _isClassDef) {
         _value = std::vector<SymbolData>();
     }
     if (t == CUSTOM) {
@@ -112,7 +111,7 @@ SymbolData& SymbolData::assign(const Value& val) {
     using namespace TypeNms;
     throwWhenUnassignable(val);
     _isInit = true;
-    if (_type != CUSTOM and !_isArray) { // strictly basetype stuff
+    if (_type != CUSTOM and !_isArray) { 
         _value = val;
         return *this;
     }
@@ -168,7 +167,7 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         }
         valueType = TypeNms::typeToStr(STRING);
     }
-    if (valueType.empty() == false) { // ??
+    if (valueType.empty() == false) {
         if (isArray() == true) {
             throw std::runtime_error("Cannot assign " + valueType + " to an array identifier");
         }
@@ -269,8 +268,6 @@ SymbolData SymbolData::instantiateClass(const std::string& scope, const std::str
     return symbol;
 }
 
-
-// for class defs/instances
 SymbolData* SymbolData::member(const std::string& id) {
     if (_isArray || _isFunc) {
         return nullptr;
@@ -279,7 +276,6 @@ SymbolData* SymbolData::member(const std::string& id) {
         return nullptr;
     }
     if (std::holds_alternative<std::vector<SymbolData>>(value()) == false) {
-        // vals of id are not symbol data
         return nullptr;
     }    
     for (SymbolData& storedSymbol : std::get<std::vector<SymbolData>>(_value)) {
@@ -306,7 +302,7 @@ bool SymbolData::hasSameTypeAs(const SymbolData& sym) const {
 }
 
 bool sameType(const SymbolData& a, const SymbolData& b) {
-    if (a.type() != CUSTOM and !a.isFunc()) { // base variable
+    if (a.type() != CUSTOM and !a.isFunc()) {
         return a.type() == b.type(); 
     }
     if (a.type() != b.type()) {
@@ -315,15 +311,15 @@ bool sameType(const SymbolData& a, const SymbolData& b) {
     if (a.type() == CUSTOM and b.type() == CUSTOM
         and !a.isFunc() and !b.isFunc()
         and !a.isArray() and !b.isArray()
-        and  a.className() != b.className()) { // class instance
+        and  a.className() != b.className()) {
         return false;
     }
     const auto& aData = std::get<std::vector<SymbolData>>(a.value());
     const auto& bData = std::get<std::vector<SymbolData>>(b.value());
-    if (aData.size() != bData.size()) { // in case they're vectors / class instances, presumably
+    if (aData.size() != bData.size()) {
         return false;
     }
-    if (a.isArray() != b.isArray() or a.isFunc() != b.isFunc()) { // not both same special type
+    if (a.isArray() != b.isArray() or a.isFunc() != b.isFunc()) {
         return false;
     }
     for (size_t i = 0; i < aData.size(); ++i) {
@@ -341,7 +337,6 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
     if (!sd.isFunc()) {
         out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" << sd.name()
             << "\', in scope \'" << sd.scope() << '\'';
-        // get base type if not custom
         
         
         if (sd.type() == CUSTOM or sd.isArray()) {
@@ -349,7 +344,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
                 printSubsymbol(out, subSymbol, depth + 1);
             }
         }
-        else { //basetype val, for sure... cel putin asa cred
+        else {
             const auto val = sd.value();
             out << ", with value " << sd.valueStr();
         }
@@ -394,7 +389,6 @@ std::string SymbolData::valueStr() const {
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
     _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, size, className));
     _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
-    //std::cout << "Adding variable: " << Scope::scopeWithNameToString(currentScope(), name) + "\n";
     return *this;
 }
 
@@ -449,24 +443,18 @@ std::string SymbolTable::currentScope() {
 void SymbolTable::enterAnonymousScope() {
     static size_t i = 0;
     if (i == SIZE_MAX) {
-        // reached scope limit for program (infeasible)
         throw std::runtime_error("Reached anon scope limit for program");
     }
     std::string scope = std::to_string(i++);
     _currentScopeHierarchy.push_back(scope);
-    //std::cout << "Current scope: " << currentScope() << '\n';
 }
 
-// todo: specify if i'm entering a class scope or a fxn scope. We might need that info
-// poate bagam totusi un specific prefix pt clase... maybe... ca sa fim 100% sigur ca niciun scope nu se suprapune cu al unei clase, pt ca scope ul unei clase e f important cand caut metode. idk
 void SymbolTable::enterScope(const std::string& str) {
     _currentScopeHierarchy.push_back(str);
-    //std::cout << "Current scope: " << currentScope() << "\n";
 }
 
 void SymbolTable::exitScope() {
     _currentScopeHierarchy.pop_back();
-    //std::cout << "Current scope: " << currentScope() << "\n";
 }
 
 SymbolData* SymbolTable::find(const std::string& scopedName) {
@@ -479,9 +467,6 @@ SymbolData* SymbolTable::find(const std::string& scopedName) {
 
 SymbolData* SymbolTable::findId(const std::string& id) {
     std::string scope = "";
-    // mergem invers de la currentScopeHierarchy IN JOS
-    // de la cel mai specific spre cel mai general scope
-    // adica sper ca asta voiai sa faci defapt
     for (int i = _currentScopeHierarchy.size(); i >= 0; --i) {
         std::string joinedScope = Scope::scopeToString(_currentScopeHierarchy, i);
         auto it = _table.find(joinedScope + id);
