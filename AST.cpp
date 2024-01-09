@@ -9,34 +9,40 @@ AST::AST(int literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", INT, SymbolData::Variable);
     _symbol.assign(literal);
+    _type = _symbol.type();
 }
 
 AST::AST(float literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", FLOAT, SymbolData::Variable);
     _symbol.assign(literal);
+    _type = _symbol.type();
 }
 
 AST::AST(bool literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", BOOL, SymbolData::Variable);
     _symbol.assign(literal);
+    _type = _symbol.type();
 }
 
 AST::AST(const char* literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", STRING, SymbolData::Variable);
     _symbol.assign(std::string(literal));
+    _type = _symbol.type();
 }
 
 AST::AST(char literal) {
     using namespace TypeNms;
     _symbol = SymbolData("", "", CHAR, SymbolData::Variable);
     _symbol.assign(literal);
+    _type = _symbol.type();
 }
 
 AST::AST(const SymbolData& symbol) {
     _symbol = symbol;
+    _type = _symbol.type();
 }
 
 SymbolData AST::evaluateUnary() const {
@@ -102,16 +108,7 @@ SymbolData AST::evaluateBinary() const {
     auto leftEval = _left->evaluate();
     auto rightEval = _right->evaluate();
 
-     // no type casting
-    if (leftEval.type() != rightEval.type()) {
-        throw std::runtime_error(std::string(
-            "Binary operation using " +
-            typeToStr(leftEval.type()) + 
-            " and " +
-            typeToStr(rightEval.type()) +
-            " is not allowed!"
-        ).c_str());
-    }
+   
     if (leftEval.value().index() != rightEval.value().index()) {
         throw std::runtime_error("std::variant indexes not matching in AST value index evaluation");
     }
@@ -242,19 +239,107 @@ SymbolData AST::evaluateBinary() const {
 AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
     _left(left), _right(right) {
 
+    using namespace TypeNms;
+    using enum Operation::BinaryOp;
+
     _isOperation = true;
     _op = static_cast<int>(op);
     _operationType = Operation::Type::BINARY;
+
+    // set type accordingly
+    if (_left->_type != _right->_type) {
+        throw std::runtime_error(std::string(
+            "Binary operation using " +
+            typeToStr(_left->_type) + 
+            " and " +
+            typeToStr(_right->_type) +
+            " is not allowed!"
+        ).c_str());
+    }
+    _type = _left->_type;
+    if (_type == BOOL) { 
+        if (!Operation::booleanOperator(op)) {
+            throw std::runtime_error("Invalid operation for boolean type");
+        }
+    }
+    else {
+        if (Operation::conversionOperator(op)) {
+            auto oldType = _type;
+            _type = BOOL;
+            switch (op) {
+                case LT:
+                    if (oldType == CUSTOM or oldType == BOOL) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case LEQ:
+                    if (oldType == CUSTOM or oldType == BOOL) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case GT:
+                    if (oldType == CUSTOM or oldType == BOOL) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case GEQ:
+                    if (oldType == CUSTOM or oldType == BOOL) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case EQ:
+                    break;
+                case NEQ:
+                    break;
+                default: throw std::runtime_error("Invalid conversion operator");
+            }
+        }
+        if (Operation::expressionOperator(op)) {
+            switch (op) {
+                case PLUS:
+                    if (_type == CUSTOM or _type == BOOL) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case MINUS:
+                    if (_type == CUSTOM or _type == BOOL or _type == STRING) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case MULT:
+                    if (_type == CUSTOM or _type == BOOL or _type == STRING) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case DIV:
+                    if (_type == CUSTOM or _type == BOOL or _type == STRING) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                case POW:
+                    if (_type == CUSTOM or _type == BOOL or _type == STRING) {
+                        throw std::runtime_error("Invalid operand types for binary operator"); // yyerror
+                    }
+                    break;
+                default:;
+                    throw std::runtime_error("Invalid expression operator");
+            }
+        }
+    } 
+
+
+
+
+
 }
 
 std::string AST::typeStr() const {
     using namespace TypeNms;
-    auto symbol = evaluate();
 
-    if (symbol.type() == CUSTOM) {
+    if (_type == CUSTOM) {
         return "Custom type";
     }
-    return TypeNms::typeToStr(symbol.type());
+    return TypeNms::typeToStr(_type);
 }
 
 std::string AST::valueStr() const {

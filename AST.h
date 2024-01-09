@@ -34,8 +34,13 @@ private:
     SymbolData evaluateBinary() const;
 
     SymbolData _symbol;
+    
+    TypeNms::Type _type;
+
     bool _isOperation = false;
     int _op;
     Operation::Type _operationType;
+
     const AST *_left = nullptr, *_right = nullptr;
+
 };
