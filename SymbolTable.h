@@ -32,7 +32,7 @@ public:
     using Value = std::variant<int, float, char, std::string, bool, std::vector<SymbolData>>;
 
     enum Flag {
-        Variable, Constant, Function, Class
+        Variable, Constant, Function, Class, InitList
     };
 
     SymbolData() = default;
@@ -56,6 +56,8 @@ public:
     TypeNms::Type type() const;
     const Value& value() const;
     std::string className() const;
+
+    const std::vector<size_t>& sizes() const;
 
     bool isFunc() const;
     bool isArray() const;
@@ -89,6 +91,7 @@ private:
     bool _isArray = false;
     bool _isFunc = false;
     bool _isClassDef = false;
+    bool _isInitList = false;
 
     // pt classInstances ca sa stie ce clasa is daca-s tip custom...
     // ca ne trebuie cand afisam type ul in symboltable

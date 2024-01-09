@@ -1,36 +1,22 @@
 CLASSES
 
 class A {
-members {
-    int x := 3.
-    int y.
-}
-decl {
-    fn int f(int k).
-}
-def {
-    fn int f(int k) {
-        self->x := 1.
-    }
-}
-
-}
-
-class B {
     members {
-        class A a.
-        int b.
+        int x := 3.
+        int y.
     }
     decl {
-
+        fn int f(int k).
     }
     def {
-
+        fn int f(int k) {
+            self->x := 1.
+        }
     }
 }
 
 ENDCLASSES
 
 fn int main() { 
-    class A arr[1][1][1][1][1].
+    class A a.
 }
