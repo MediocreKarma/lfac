@@ -1,0 +1,83 @@
+CLASSES
+
+class MyType {
+    members {
+        int x.
+        int y.
+    }
+    decl {
+        fn int f(int y).
+    }
+    def {
+        fn int f(int y) { float z. }
+    }
+}
+
+ENDCLASSES
+
+GLOBALS
+
+int ix.
+int giy1.
+int giy2.
+float gf := 10.4.
+string gs.
+char gc.
+bool gb.
+
+int gv[100].
+class MyType mObj := {0, 0}.
+
+ENDGLOBALS
+
+FUNCTIONS
+decl {
+    fn int gfun(int z, float f, string s).
+    fn float ff(int x).
+    fn bool check().
+}
+def {
+    fn int gfun(int z, float f, string s) {
+        int ix.
+    }
+
+    fn float ff(int x) {
+
+    }
+
+    fn bool check() {
+
+    }
+}
+
+ENDFUNCTIONS
+
+fn int main() {
+    gc := 'c'.
+    gs := "Hello there".
+    TypeOf(gc).
+    gb := false.
+    giy1 := 5.
+    giy2 := 100 + giy1.
+    Eval(gc).
+    int i.
+    int ia := 1.
+    for i := 0 . i < 5. i := i + 1 : {
+        ia := ia * i.
+    }
+    while false : {
+
+    }
+    // comment?
+    Eval(gfun(10, 10.5, gs)).
+    Eval(check()).
+    gb := check() == true && giy1 + gfun(10, 10.5, gs) > giy2.
+    Eval(gb).
+    Eval(gb || giy1 == 5).
+    mObj->x := 100.
+    gv[5] := 10.
+    giy1 := giy1 + gfun(10, 10.5, gs) + mObj->x - gv[10].
+    gfun(gfun(1, 0.5, gs), 10.5, gs).
+    TypeOf(giy1 + 5).
+    TypeOf(gs).
+}
