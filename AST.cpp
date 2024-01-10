@@ -350,6 +350,10 @@ std::string AST::valueStr() const {
     return evaluate().valueStr();
 }
 
+std::string AST::trueValueStr() const {
+    return evaluate().trueValueStr();
+}
+
 SymbolData AST::symbol() const {
     return evaluate();
 }

@@ -34,6 +34,6 @@ ENDFUNCTIONS
 
 fn int main() { 
     const class A arr[2] := {{2, 4}, {3, 5}}.
-    const string str := "abecedar".
+    const string str := "abec\nedar".
     Eval(str).
 }

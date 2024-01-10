@@ -454,7 +454,23 @@ std::string SymbolData::valueStr() const {
 }
 
 std::string SymbolData::trueValueStr() const {
-    
+    if (!_isInit) {
+        return "uninitialized";
+    }
+    switch(type()) {
+        case INT :
+            return std::to_string(std::get<int>(_value));
+        case FLOAT:
+            return std::to_string(std::get<float>(_value));
+        case BOOL:
+            return (std::get<bool>(_value) == 1) ? "true" : "false";
+        case CHAR:
+            return std::to_string(std::get<char>(_value));
+        case STRING:
+            return std::get<std::string>(_value);
+        default:
+            return "non-base-type";
+    }
 }
 
 // --- SymbolTable ---

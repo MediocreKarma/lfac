@@ -24,6 +24,7 @@ public:
 
     std::string typeStr() const; // pt typeof 
     std::string valueStr() const; // pt eval
+    std::string trueValueStr() const; // pt eval
 
     SymbolData symbol() const;
 
