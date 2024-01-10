@@ -72,6 +72,7 @@ public:
     bool hasSameTypeAs(const SymbolData& sym) const; // has same members if custom... etc
 
     std::string valueStr() const;
+    std::string trueValueStr() const;
     friend std::ostream& operator << (std::ostream&, const SymbolData&);
     friend void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth);
 

@@ -453,6 +453,10 @@ std::string SymbolData::valueStr() const {
     }
 }
 
+std::string SymbolData::trueValueStr() const {
+    
+}
+
 // --- SymbolTable ---
 
 SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes) {
