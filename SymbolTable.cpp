@@ -227,7 +227,6 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type Class " + className());
     }
     // initializer list
-    std::cout << *this << '\n';
     const std::vector<SymbolData>&  thisData = std::get<std::vector<SymbolData>>(value());
     const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
     if (thisData.size() < otherData.size()) {
