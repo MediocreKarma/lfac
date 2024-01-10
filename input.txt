@@ -19,7 +19,7 @@ class My {
 ENDCLASSES
 
 GLOBALS
-int x.
+int x := 2.
 int y.
 
 

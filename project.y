@@ -574,6 +574,39 @@ function_call  : ID '(' expr_list ')' {
                     }
                     auto fxnVal = std::get<std::vector<SymbolData>>(methodSymbol->value());
                     auto exprVal = std::get<std::vector<SymbolData>>($5->value());
+                    if (fxnVal.size() != exprVal.size()) {
+                         yyerror("Wrong number of parameters");
+                    }
+                    for (size_t i = 0; i < fxnVal.size(); ++i) {
+                         if (!sameType(fxnVal[i], exprVal[i])) {
+                              yyerror(std::string("Cannot call function ") + methodSymbol->name() + " with parameter at position " + std::to_string(i) + " of type " + TypeNms::typeToStr( exprVal[i].type()));
+                         }
+                    }
+                    auto type = methodSymbol->type();
+                    auto methodSymClassname = methodSymbol->className();
+                    if (className.empty() and type == TypeNms::CUSTOM) {
+                         yyerror("Cannot derive classname from existing symbol in order to create a symbol with the same class type");
+                    }
+                    if (type != TypeNms::CUSTOM) {
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, nullptr);
+                    }
+                    else {
+                         auto classDef = symbolTable.findClass(className);
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, classDef);
+                    }
+               }
+               | SELF MEMBER ID '(' expr_list ')' {
+                    std::string scope = symbolTable.currentScope();
+                    std::string className = scope.substr(1, scope.find_first_of('/', 1) - 1);
+                    auto functionName = std::string($3);
+                    auto methodScope = Scope::scopeToString({"", className});
+                    auto scopedName = Scope::scopeWithNameToString(methodScope, functionName);
+                    auto methodSymbol = symbolTable.find(scopedName);
+                    if (!methodSymbol) {
+                         yyerror("Cannot call non-existent class method " + scopedName);
+                    }
+                    auto fxnVal = std::get<std::vector<SymbolData>>(methodSymbol->value());
+                    auto exprVal = std::get<std::vector<SymbolData>>($5->value());
                     
                     if (fxnVal.size() != exprVal.size()) {
                          yyerror("Wrong number of parameters");
@@ -583,7 +616,6 @@ function_call  : ID '(' expr_list ')' {
                               yyerror(std::string("Cannot call function ") + methodSymbol->name() + " with parameter at position " + std::to_string(i) + " of type " + TypeNms::typeToStr( exprVal[i].type()));
                          }
                     }
-                    
                     auto type = methodSymbol->type();
                     auto methodSymClassname = methodSymbol->className();
                     if (className.empty() and type == TypeNms::CUSTOM) {
@@ -706,7 +738,6 @@ int main(int argc, char** argv) {
           exit(1);
      }
      yyin = fopen(argv[1], "r");
-
      try {
           yyparse();
      }
