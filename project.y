@@ -16,6 +16,11 @@ struct SymbolList {
      SymbolData* symbol;
 };
 
+struct SizeList {
+     SizeList* next;
+     size_t size;
+};
+
 class SymbolTable symbolTable;
 %}
 %union {
@@ -28,11 +33,12 @@ class SymbolTable symbolTable;
      class AST* astNode;
      struct SymbolList* list;
      class SymbolData* symbolValue;
+     struct SizeList* sizeList;
 }
 %token CLASSES ENDCLASSES FUNCTIONS ENDFUNCTIONS GLOBALS ENDGLOBALS MAIN
 %token SEP ASSIGN DEF DECL MEMBERS MEMBER
 %token WHILE FOR IF ELSE DO RETURN EVAL TYPEOF
-%token CLASS CONST ARRAY FN SELF
+%token CLASS CONST FN SELF
 %token<idValue> TYPE ID
 %token<stringValue> STRINGVAL
 %token<intValue> INTVAL
@@ -43,7 +49,7 @@ class SymbolTable symbolTable;
 %type<list> list_param fn_param
 %type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext expr_list_elem function_call
 %type<list> class_members class_members1
-
+%type<sizeList> index_list
 
 %right ASSIGN
 %left ANDB ORB
@@ -58,7 +64,8 @@ class SymbolTable symbolTable;
 %start start_program
 %%
 
-start_program : progr { std::cout << "The program is syntactically and semantically correct.\n";}
+start_program  : progr { std::cout << "The program is syntactically and semantically correct.\n";}
+               ;
 
 progr: classes_section globals_section functions_section MAIN  '{' {symbolTable.add("main", TypeNms::strToType("int"), SymbolData::Function); symbolTable.enterScope("main"); } statement_list '}' { symbolTable.exitScope();}
      ;
@@ -104,7 +111,8 @@ class_definition:   CLASS ID '{' {
                               ptr = next;
                          }
                          symbolTable.exitScope();
-                    };
+                    }
+                    ;
 
 class_members  : class_members1 { $$ = $1; }
                | /* epsilon */ { $$ = nullptr; }
@@ -134,6 +142,7 @@ class_members1 : decl_assign SEP {
 
 class_methods_def   : function_definition class_methods_def {}
                     | /* epsilon */
+                    ;
 
 function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')' {
                          SymbolList* ptr = $6;
@@ -165,14 +174,15 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                               delete ptr;
                               ptr = next;
                          }
-                         if (symbolTable.findClass($3) == nullptr) {
+                         SymbolData* classDef = symbolTable.findClass($3);
+                         if (classDef == nullptr) {
                               yyerror(std::string("Cannot declare function ") + $4 + " with undeclared class return-type " + $3);
                          }
                          symbolTable.exitScope(); 
                          if(symbolTable.contains($4)) {
                               yyerror(std::string("Function declaration invalid because symbol ") + $4 + " already exists in same scope");
                          }
-                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, 0, $3);
+                         symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Function, {}, classDef);
                          $$ = symbolTable.find(symbolTable.currentScope() + $4);
                          for (const auto& sym : symbols) {
                               $$->addSymbol(sym);
@@ -204,6 +214,7 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          }
                     }
                     | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' '{' statement_list '}' {
+                         SymbolData* classDef = symbolTable.findClass($3);
                          SymbolList* ptr = $7;
                          std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
@@ -218,7 +229,7 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                          if (fnData == nullptr) {
                               yyerror(std::string("No function ") + $4 + " exists in current scope");
                          }
-                         SymbolData tempFnSymbol(symbolTable.currentScope(), $4, TypeNms::Type::CUSTOM, SymbolData::Flag::Function, 0, $3);
+                         SymbolData tempFnSymbol(symbolTable.currentScope(), $4, TypeNms::Type::CUSTOM, SymbolData::Flag::Function, {}, classDef);
                          for (const auto& sym : symbols) {
                               tempFnSymbol.addSymbol(sym);
                          }
@@ -270,14 +281,22 @@ decl_only: TYPE ID {
                symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable);
                $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
-          | ARRAY TYPE ID '[' INTVAL ']' {
-               if(symbolTable.contains($3)) {
-                    yyerror(std::string("Array type symbol could not be created because symbol ") + $3 + " already exists in same scope");
+          | TYPE ID index_list {
+               if(symbolTable.contains($2)) {
+                    yyerror(std::string("Array type symbol could not be created because symbol ") + $2 + " already exists in same scope");
                }
-               symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, $5, "");
-               $$ = symbolTable.find(symbolTable.currentScope() + $3);
+               std::vector<size_t> indexes;
+               SizeList* ptr = $3;
+               while (ptr != nullptr) {
+                    indexes.push_back(ptr->size);
+                    SizeList* next = ptr->next;
+                    delete ptr;
+                    ptr = next;
+               }
+               symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable, indexes);
+               $$ = symbolTable.find(symbolTable.currentScope() + $2);
           }
-          | CLASS ID ID  {
+          | CLASS ID ID {
                if(symbolTable.contains($3)) {
                     yyerror(std::string("Class type symbol could not be created because symbol ") + $3 + " already exists in same scope");
                }
@@ -289,6 +308,26 @@ decl_only: TYPE ID {
                symbolTable.add(symbol);
                $$ = symbolTable.find(symbolTable.currentScope() + $3);
           }
+          | CLASS ID ID index_list {
+               SymbolData* classDef = symbolTable.findClass($2);
+               if (classDef == nullptr) {
+                    yyerror(std::string("Cannot initialize class of undefined class ") + $2);
+               } 
+               if(symbolTable.contains($3)) {
+                    yyerror(std::string("Array type symbol could not be created because symbol ") + $3 + " already exists in same scope");
+               }
+               std::vector<size_t> indexes;
+               SizeList* ptr = $4;
+               while (ptr != nullptr) {
+                    indexes.push_back(ptr->size);
+                    SizeList* next = ptr->next;
+                    delete ptr;
+                    ptr = next;
+               }
+               symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable, indexes, classDef);
+               $$ = symbolTable.find(symbolTable.currentScope() + $3);
+          }
+          ;
 
 decl_assign    : TYPE ID ASSIGN expr {
                     if(symbolTable.contains($2)) {
@@ -316,11 +355,11 @@ decl_assign    : TYPE ID ASSIGN expr {
                     if (classSymbol == nullptr) {
                          yyerror(std::string("Cannot instantiate symbol ") + $3 + " of non-defined class type " + $2);
                     }
+                    std::cout << "here\n";
                     SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $3);
                     symbolTable.add(symbol);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
                     $$->assign($5->value());
-
                     delete $5;
                }
                | CONST CLASS ID ID ASSIGN initializer_list {
@@ -338,10 +377,40 @@ decl_assign    : TYPE ID ASSIGN expr {
                     $$->setConst();
                     delete $6;
                }
-               // todo: do these
-               | ARRAY ID ID ASSIGN initializer_list {}
-               | CONST ARRAY ID ID ASSIGN initializer_list {}
+               | TYPE ID index_list ASSIGN initializer_list {
+                    std::cout << *$5 << '\n';
+                    if(symbolTable.contains($2)) {
+                         yyerror(std::string("Symbol ") + $2 + " already exists in same scope");
+                    }
+                    std::vector<size_t> indexes;
+                    SizeList* ptr = $3;
+                    while (ptr != nullptr) {
+                         indexes.push_back(ptr->size);
+                         SizeList* next = ptr->next;
+                         delete ptr;
+                         ptr = next;
+                    }
+                    symbolTable.add($2, TypeNms::strToType($1), SymbolData::Variable, indexes);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $2);
+                    $$->assign($5->value());
+                    delete $5;
+               }
+               | CONST ID ID ASSIGN initializer_list {
 
+               }
+               ;
+
+index_list: '[' INTVAL ']' {
+               $$ = new SizeList;
+               $$->next = nullptr;
+               $$->size = $2;
+          }
+          | '[' INTVAL ']' index_list {
+               $$ = new SizeList;
+               $$->next = $4;
+               $$->size = $2;
+          }
+          ;
 
 
 fn_param  : list_param { $$ = $1; }
@@ -378,12 +447,14 @@ sep_stmt  : assignment {}
           | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->valueStr() << "\033[0m\n";}
           | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
           | DO ':' block WHILE expr {if ($5->type() != TypeNms::BOOL) {yyerror("Condition of do-while loop has to be of boolean type");}} 
+          ;
 
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
                | WHILE expr { if ($2->type() != TypeNms::BOOL) {yyerror("Condition of while loop has to be of boolean type");}}':' block
                | FOR assignment {} SEP expr { if ($5->type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block
                | block {}
+               ;
 
 if_expr   : IF expr {  if ($2->type() != TypeNms::BOOL) {yyerror("Condition of if expression has to be of boolean type");}} ':' block
           ;
@@ -454,33 +525,37 @@ function_call  : ID '(' expr_list ')' {
                }
                ;
         
-initializer_list : '{' initializer_list_inner  '}' {$$ = $2;}
-                 ;
+initializer_list    : '{' initializer_list_inner  '}' {$$ = $2;}
+                    ;
 
-initializer_list_inner : initializer_list_elem {
-                              $$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::Variable);
+initializer_list_inner   : initializer_list_elem {
+                              std::cout << "got here" << std::endl;
+                              $$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::InitList);
                               $$->addSymbol(*$1);
                               delete $1;
                          }
                          | initializer_list_elem ',' initializer_list_inner {
+                              std::cout << "got here1" << std::endl;
                               $$ = $3;
                               $3->addSymbolToBeginning(*$1);
                               delete $1;
                          }
                          ;
 
-initializer_list_elem : initializer_list {
+initializer_list_elem    : initializer_list {
+                              std::cout << "got here2" << std::endl;
                               $$ = $1;
-                        }
-                      | expr {
-                              $$ = new SymbolData($1->symbol());
-                              
-                      }
-                      ;
+                         }
+                         | expr {
+                              std::cout << "got here3" << std::endl;
+                              SymbolData symbol = $1->symbol();
+                              $$ = new SymbolData(symbol.scope(), symbol.name(), symbol.type(), SymbolData::InitList, symbol.value());  
+                         }
+                         ;
 
 
 expr_list : expr_list_ext {$$ = $1;}
-          | /* epsilon */ {$$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::Variable);}
+          | /* epsilon */ {$$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::InitList);}
           ;
 
 expr_list_ext  : expr_list_elem ',' expr_list_ext {
@@ -488,7 +563,8 @@ expr_list_ext  : expr_list_elem ',' expr_list_ext {
                     $3->addSymbolToBeginning(*$1);
                     delete $1;
                }
-               | expr_list_elem {$$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::Variable); $$->addSymbol(*$1);}
+               | expr_list_elem {$$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::Flag::InitList); $$->addSymbol(*$1);}
+               ;
 
 expr_list_elem : expr {$$ = new SymbolData($1->symbol());}
 

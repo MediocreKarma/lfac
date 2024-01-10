@@ -3,6 +3,14 @@
 
 using namespace TypeNms;
 
+std::string fullMatrixForm(const std::vector<size_t> sizes) {
+    std::string output = "";
+    for (size_t size : sizes) {
+        output += "[" + std::to_string(size) + "]";
+    }
+    return output;
+}
+
 std::string Scope::scopeToString(const std::vector<std::string>& scope, ssize_t size) {
     const char* const delim = "/";
     std::string result;
@@ -27,19 +35,12 @@ bool Scope::encompassingScope(const std::string& active, const std::string& enco
     return active.find(encompassing) != std::string::npos;
 }
 
-SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const size_t size, const std::string& className) {
+SymbolData::SymbolData(const std::string& scope, const std::string& name, const TypeNms::Type t, const Flag f, const std::vector<size_t>& sizes, const SymbolData* classDef) {
     _scope = scope;
     _name = name;
     _type = t;
-    _isArray = (size > 0);
-    if (_isArray) {
-        std::vector<SymbolData> vec;
-        for (size_t i = 0; i < size; ++i) {
-            vec.reserve(size);
-            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, 0, className);
-        }
-        _value = vec;
-    }
+    _sizes = sizes;
+    _isArray = (sizes.empty() == false);
     _isInit = false;
     switch (f) {
         case Constant:
@@ -51,15 +52,34 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
         case Class:
             _isClassDef = true;
             break;
+        case InitList:
+            _isInitList = true;
+            _isInit = true;
+            break;
     }
-    if (t == CUSTOM or _isFunc or _isClassDef) {
+    if (_isArray == false and (t == CUSTOM or _isFunc or _isClassDef)) {
         _value = std::vector<SymbolData>();
     }
-    if (t == CUSTOM) {
-        _className = className;
+    if (_isArray) {
+        std::vector<SymbolData> vec;
+        vec.reserve(sizes.front());
+        for (size_t i = 0; i < sizes.front(); ++i) {
+            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+        }
+        _value = vec;
     }
-    else if (!className.empty()) {
-        throw std::invalid_argument("Custom class name given for non-class-instance type symbol");
+    if (t == CUSTOM && _isInitList == false) {
+        if (classDef == nullptr) {
+            if (_isClassDef) {
+                _className = name;
+            }
+            else {
+                throw std::logic_error("Custom type constructed without any class-instance template");
+            }
+        }
+        else {
+            _className = classDef->name();
+        }
     }
 }
 
@@ -82,28 +102,34 @@ SymbolData& SymbolData::setType(TypeNms::Type type) {
 }
 
 SymbolData& SymbolData::assign(const SymbolData& symbol) {
-    throwWhenUnassignable(symbol.value());
-    if (sameType(*this, symbol) == false) {
-        std::string from  = TypeNms::typeToStr(symbol.type());
-        std::string to    = TypeNms::typeToStr(type());
-        size_t thisSize   = std::get<std::vector<SymbolData>>(value()).size();
-        size_t symbolSize = std::get<std::vector<SymbolData>>(symbol.value()).size();
-        if (type() == CUSTOM) {
-            to += ' ' + className();
-        }
-        if (symbol.type() == CUSTOM) {
-            from += ' ' + symbol.className();
-        }
-        if (isArray()) {
-            from += "[" + std::to_string(thisSize) + "]";
-        }
-        if (symbol.isArray()) {
-            to += "[" + std::to_string(symbolSize) + "]";
-        }
-        throw std::runtime_error("Cannot assign type: " + from + " to type: " + to);
+    if (std::holds_alternative<std::vector<SymbolData>>(value()) == false) {
+        this->assign(symbol.value());
+        return *this;
     }
+    //throwWhenUnassignable(symbol.value());
+          std::vector<SymbolData>&   thisVec = std::get<std::vector<SymbolData>>(_value);
+    const std::vector<SymbolData>& symbolVec = std::get<std::vector<SymbolData>>(symbol._value);
+    std::string from  = TypeNms::typeToStr(symbol.type());
+    std::string to    = TypeNms::typeToStr(type());
+    if (type() == CUSTOM) {
+        to += ' ' + className();
+    }
+    if (symbol.type() == CUSTOM) {
+        from += ' ' + symbol.className();
+    }
+    if (isArray()) {
+        from += fullMatrixForm(_sizes);
+    }
+    if (symbol.isArray()) {
+        to += fullMatrixForm(symbol._sizes);
+    }
+    if (sameType(*this, symbol) == false || thisVec.size() != symbolVec.size()) {
+        throw std::runtime_error("Cannot assign type: " + from + " to type: " + to);
+    } 
     _isInit = true;
-    _value = symbol.value();
+    for (size_t i = 0; i < thisVec.size(); ++i) {
+        thisVec[i].assign(symbolVec[i]);
+    }
     return *this;
 }
 
@@ -117,7 +143,7 @@ SymbolData& SymbolData::assign(const Value& val) {
     }
 
     if (!std::holds_alternative<std::vector<SymbolData>>(_value)) {
-        throw std::runtime_error("Cannot iterate through array or non-base-type symbol " + _name + " in order to assign to it. Something has gone very wrong");
+        throw std::logic_error("Cannot iterate through array or non-base-type symbol " + _name + " in order to assign to it. Something has gone very wrong");
     }
 
     auto& vector = std::get<std::vector<SymbolData>>(_value);
@@ -257,6 +283,10 @@ bool SymbolData::isConst() const {
     return _isConst;
 }
 
+const std::vector<size_t>& SymbolData::sizes() const {
+    return _sizes;
+}
+
 SymbolData SymbolData::instantiateClass(const std::string& scope, const std::string& name) const {
     if (!_isClassDef) {
         throw std::invalid_argument("Cannot clone non-class-template symbol " + _name);
@@ -302,25 +332,29 @@ bool SymbolData::hasSameTypeAs(const SymbolData& sym) const {
 }
 
 bool sameType(const SymbolData& a, const SymbolData& b) {
-    if (a.type() != CUSTOM and !a.isFunc()) {
-        return a.type() == b.type(); 
-    }
-    if (a.type() != b.type()) {
-        return false;
-    }
-    if (a.type() == CUSTOM and b.type() == CUSTOM
-        and !a.isFunc() and !b.isFunc()
-        and !a.isArray() and !b.isArray()
-        and  a.className() != b.className()) {
-        return false;
+    if (b._isInitList == false || std::holds_alternative<std::vector<SymbolData>>(a.value()) == false) {
+        if (a.type() != CUSTOM and !a.isFunc()) {
+            return a.type() == b.type(); 
+        }
+        if (a.type() != b.type()) {
+            return false;
+        }
+        if (a.type() == CUSTOM and b.type() == CUSTOM 
+            and !a.isFunc() and !b.isFunc()
+            and !a.isArray() and !b.isArray()
+            and  a.className() != b.className()) {
+            return false;
+        }
     }
     const auto& aData = std::get<std::vector<SymbolData>>(a.value());
     const auto& bData = std::get<std::vector<SymbolData>>(b.value());
-    if (aData.size() != bData.size()) {
-        return false;
-    }
-    if (a.isArray() != b.isArray() or a.isFunc() != b.isFunc()) {
-        return false;
+    if (b._isInitList == false) {
+        if (aData.size() != bData.size()) {
+            return false;
+        }
+        if (a.isArray() != b.isArray() or a.isFunc() != b.isFunc()) {
+            return false;
+        }
     }
     for (size_t i = 0; i < aData.size(); ++i) {
         if (!sameType(aData[i], bData[i])) {
@@ -335,8 +369,8 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         out << '\n' << std::string(depth, '\t');
     }
     if (!sd.isFunc()) {
-        out << ((sd.isConst() == true) ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" << sd.name()
-            << "\', in scope \'" << sd.scope() << '\'';
+        out << (sd.isConst() ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) 
+            << (sd.isArray() ? fullMatrixForm(sd.sizes()) : "") << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
         
         
         if (sd.type() == CUSTOM or sd.isArray()) {
@@ -386,8 +420,14 @@ std::string SymbolData::valueStr() const {
 
 // --- SymbolTable ---
 
-SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const size_t size, const std::string& className) {
-    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, size, className));
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, sizes));
+    _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
+    return *this;
+}
+
+SymbolTable& SymbolTable::add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes, const SymbolData* className) {
+    _table.emplace(Scope::scopeWithNameToString(currentScope(), name), std::make_unique<SymbolData>(currentScope(), name, type, flag, sizes, className));
     _orderedTable.push_back(_table.at(Scope::scopeWithNameToString(currentScope(), name)).get());
     return *this;
 }
@@ -400,7 +440,7 @@ SymbolTable& SymbolTable::add(const SymbolData& symbol) {
 }
 
 SymbolTable& SymbolTable::addClass(const std::string& name) {
-    _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class, 0, name));
+    _classesTable.emplace(name, std::make_unique<SymbolData>(currentScope(), name, Type::CUSTOM, SymbolData::Flag::Class));
     _orderedClassesTable.push_back(_classesTable.at(name).get());
     return *this;
 }
