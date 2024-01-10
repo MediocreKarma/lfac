@@ -18,5 +18,5 @@ class A {
 ENDCLASSES
 
 fn int main() { 
-    class A a.
+    const class A arr[2] := {{2, 4}, {3, 5}}.
 }

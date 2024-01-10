@@ -355,7 +355,6 @@ decl_assign    : TYPE ID ASSIGN expr {
                     if (classSymbol == nullptr) {
                          yyerror(std::string("Cannot instantiate symbol ") + $3 + " of non-defined class type " + $2);
                     }
-                    std::cout << "here\n";
                     SymbolData symbol = classSymbol->instantiateClass(symbolTable.currentScope(), $3);
                     symbolTable.add(symbol);
                     $$ = symbolTable.find(symbolTable.currentScope() + $3);
@@ -378,7 +377,6 @@ decl_assign    : TYPE ID ASSIGN expr {
                     delete $6;
                }
                | TYPE ID index_list ASSIGN initializer_list {
-                    std::cout << *$5 << '\n';
                     if(symbolTable.contains($2)) {
                          yyerror(std::string("Symbol ") + $2 + " already exists in same scope");
                     }
@@ -395,8 +393,65 @@ decl_assign    : TYPE ID ASSIGN expr {
                     $$->assign($5->value());
                     delete $5;
                }
-               | CONST ID ID ASSIGN initializer_list {
-
+               | CONST TYPE ID index_list ASSIGN initializer_list {   
+                    if(symbolTable.contains($3)) {
+                         yyerror(std::string("Symbol ") + $3 + " already exists in same scope");
+                    }
+                    std::vector<size_t> indexes;
+                    SizeList* ptr = $4;
+                    while (ptr != nullptr) {
+                         indexes.push_back(ptr->size);
+                         SizeList* next = ptr->next;
+                         delete ptr;
+                         ptr = next;
+                    }
+                    symbolTable.add($3, TypeNms::strToType($2), SymbolData::Variable, indexes);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $3);
+                    $$->assign($6->value());
+                    $$->setConst();
+                    delete $6;
+               }
+               | CLASS ID ID index_list ASSIGN initializer_list {
+                    SymbolData* classDef = symbolTable.findClass($2);
+                    if (classDef == nullptr) {
+                         yyerror(std::string("Cannot instantiate symbol ") + $3 + " of non-defined class type " + $2);
+                    }
+                    if(symbolTable.contains($3)) {
+                         yyerror(std::string("Symbol ") + $3 + " already exists in same scope");
+                    }
+                    std::vector<size_t> indexes;
+                    SizeList* ptr = $4;
+                    while (ptr != nullptr) {
+                         indexes.push_back(ptr->size);
+                         SizeList* next = ptr->next;
+                         delete ptr;
+                         ptr = next;
+                    }
+                    symbolTable.add($3, TypeNms::Type::CUSTOM, SymbolData::Variable, indexes, classDef);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $3);
+                    $$->assign($6->value());
+                    delete $6;
+               }
+               | CONST CLASS ID ID index_list ASSIGN initializer_list {
+                    SymbolData* classDef = symbolTable.findClass($3);
+                    if (classDef == nullptr) {
+                         yyerror(std::string("Cannot instantiate symbol ") + $4 + " of non-defined class type " + $3);
+                    }
+                    if(symbolTable.contains($4)) {
+                         yyerror(std::string("Symbol ") + $4 + " already exists in same scope");
+                    }
+                    std::vector<size_t> indexes;
+                    SizeList* ptr = $5;
+                    while (ptr != nullptr) {
+                         indexes.push_back(ptr->size);
+                         SizeList* next = ptr->next;
+                         delete ptr;
+                         ptr = next;
+                    }
+                    symbolTable.add($4, TypeNms::Type::CUSTOM, SymbolData::Variable, indexes, classDef);
+                    $$ = symbolTable.find(symbolTable.currentScope() + $4);
+                    $$->assign($7->value());
+                    delete $7;
                }
                ;
 
@@ -545,13 +600,11 @@ initializer_list    : '{' initializer_list_inner  '}' {$$ = $2;}
                     ;
 
 initializer_list_inner   : initializer_list_elem {
-                              std::cout << "got here" << std::endl;
                               $$ = new SymbolData("", "", TypeNms::CUSTOM, SymbolData::InitList);
                               $$->addSymbol(*$1);
                               delete $1;
                          }
                          | initializer_list_elem ',' initializer_list_inner {
-                              std::cout << "got here1" << std::endl;
                               $$ = $3;
                               $3->addSymbolToBeginning(*$1);
                               delete $1;
@@ -559,11 +612,9 @@ initializer_list_inner   : initializer_list_elem {
                          ;
 
 initializer_list_elem    : initializer_list {
-                              std::cout << "got here2" << std::endl;
                               $$ = $1;
                          }
                          | expr {
-                              std::cout << "got here3" << std::endl;
                               SymbolData symbol = $1->symbol();
                               $$ = new SymbolData(symbol.scope(), symbol.name(), symbol.type(), SymbolData::InitList, symbol.value());  
                          }

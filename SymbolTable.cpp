@@ -61,12 +61,23 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
         _value = std::vector<SymbolData>();
     }
     if (_isArray) {
-        std::vector<SymbolData> vec;
-        vec.reserve(sizes.front());
-        for (size_t i = 0; i < sizes.front(); ++i) {
-            vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+        if (t != CUSTOM || sizes.size() > 1) {
+            std::vector<SymbolData> vec;
+            vec.reserve(sizes.front());
+            for (size_t i = 0; i < sizes.front(); ++i) {
+                vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+            }
+            _value = vec;
         }
-        _value = vec;
+        else {
+            std::vector<SymbolData> vec;
+            vec.reserve(sizes.front());
+            for (size_t i = 0; i < sizes.front(); ++i) {
+                vec.emplace_back(classDef->instantiateClass(scope, name + "[" + std::to_string(i) + "]"));
+            }
+            _value = vec;
+        }
+
     }
     if (t == CUSTOM && _isInitList == false) {
         if (classDef == nullptr) {
@@ -90,9 +101,22 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
 
 SymbolData& SymbolData::setConst(bool value) {
     if (_isConst and value == false) {
-        throw std::runtime_error("Cannot make const symbol " + _name + " non-const");
+        throw std::logic_error("Cannot make const symbol " + _name + " non-const");
+    }
+    if (value && _isInit == false) {
+        throw std::runtime_error("Cannot initialize const variable " + name() + " because it is not fully initialized");
     }
     _isConst = value;
+    if (_isConst && std::holds_alternative<std::vector<SymbolData>>(_value)) {
+        for (SymbolData& subSymbol : std::get<std::vector<SymbolData>>(_value)) {
+            try {
+                subSymbol.setConst(value);
+            }
+            catch(std::runtime_error& e) {
+                throw std::runtime_error("Cannot initialize const variable " + name() + " because it is not fully initialized");
+            }
+        }
+    }
     return *this;
 }
 
@@ -203,6 +227,7 @@ void SymbolData::throwWhenUnassignable(const Value& val) {
         throw std::runtime_error("Cannot assign " + valueType + " to an identifier of type Class " + className());
     }
     // initializer list
+    std::cout << *this << '\n';
     const std::vector<SymbolData>&  thisData = std::get<std::vector<SymbolData>>(value());
     const std::vector<SymbolData>& otherData = std::get<std::vector<SymbolData>>(val);
     if (thisData.size() < otherData.size()) {
