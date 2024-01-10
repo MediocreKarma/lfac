@@ -53,20 +53,8 @@ def {
 ENDFUNCTIONS
 
 fn int main() { 
-    class A a[2] := {{1, 2}, {3, 4}}.
-    const class A b[2] := a.
-
-    int x[2][2] := {{1, 2}, {3, 4}}.
-    int y[2][2] := {x[0], {1, 2}}.
-    int z[2][2] := y.
-
-    class Vec3i point := {100, 100, 100}.
-    if x[0][0] > z[0][0] : {
-        Eval(10 + 5).
-    }
-
-    for int x := 0. x < 10. x := x + 1 : {
-        int x := 10.
-        Eval(x).
-    }
+    class Vec3i arr
+    [2]
+    [0]
+    .
 }

@@ -61,11 +61,20 @@ SymbolData::SymbolData(const std::string& scope, const std::string& name, const 
         _value = std::vector<SymbolData>();
     }
     if (_isArray) {
+        if (sizes.front() == 0) {
+            throw std::invalid_argument("Cannot construct array " + name +  " of size 0");
+        }
         if (t != CUSTOM || sizes.size() > 1) {
             std::vector<SymbolData> vec;
             vec.reserve(sizes.front());
             for (size_t i = 0; i < sizes.front(); ++i) {
-                vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+                try {
+                    vec.emplace_back(scope, name + "[" + std::to_string(i) + "]", t, f, std::vector<size_t>(sizes.begin() + 1, sizes.end()), classDef);
+                } 
+                catch (std::invalid_argument& constructionError) {
+                    throw std::invalid_argument("Cannot construct array " + name +  " of size 0");
+                }
+                
             }
             _value = vec;
         }
