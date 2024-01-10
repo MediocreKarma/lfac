@@ -270,7 +270,7 @@ identifier: ID {
           | identifier MEMBER ID {
                $$ = $1->member($3);
                if ($$ == nullptr) yyerror(std::string("Cannot access undefined member ") + $3 + " of symbol " + $1->name());
-          }s
+          }
           | identifier '[' expr ']' {
                if ($3->type() != TypeNms::Type::INT) {
                     yyerror("Cannot index an array with a non-integer expression");
