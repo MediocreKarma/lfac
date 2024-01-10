@@ -139,6 +139,7 @@ AST::AST(Operation::UnaryOp op, const AST* left) :
     }
     
     _type = operandType;
+    _symbol.setType(_type);
 }
 
 SymbolData AST::evaluateBinary() const {
@@ -314,6 +315,7 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
         ).c_str());
     }
     _type = _left->_type;
+    _symbol.setType(_type);
     if (_type == BOOL) { 
         if (!Operation::booleanOperator(op)) {
             throw std::runtime_error("Invalid operation for boolean type");
@@ -323,6 +325,7 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
         if (Operation::conversionOperator(op)) {
             auto oldType = _type;
             _type = BOOL;
+            _symbol.setType(_type);
             switch (op) {
                 case LT:
                     if (oldType == CUSTOM or oldType == BOOL) {

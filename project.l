@@ -7,6 +7,8 @@
 %option noyywrap
 %%
 
+"//"[^\n]*\n { yylineno++;/* skip commented line */}
+
 "int"|"float"|"char"|"string"|"bool" {yylval.stringValue = strdup(yytext); return TYPE;}
 "const" {return CONST;}
 "class" {return CLASS;}
@@ -56,7 +58,6 @@
 
 "true" {yylval.boolValue = true; return BOOLVAL;}
 "false" {yylval.boolValue = false; return BOOLVAL;}
-"//"[^\n]*\n { yylineno++;/* skip commented line */}
 [a-zA-Z_][_a-zA-Z0-9]* {yylval.stringValue = strdup(yytext); return ID;}
 [0-9]*\.[0-9]+ {yylval.floatValue = atof(yytext); return FLOATVAL;}
 [1-9][0-9]*|0 {yylval.intValue = atol(yytext); return INTVAL;}

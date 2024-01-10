@@ -12,7 +12,6 @@ class MyType {
         fn int f(int y) { float z. }
     }
 }
-
 ENDCLASSES
 
 GLOBALS
@@ -55,12 +54,13 @@ ENDFUNCTIONS
 fn int main() {
     gc := 'c'.
     gs := "Hello there".
-    TypeOf(gc).
+    TypeOf(gc). //should print char
     gb := false.
     giy1 := 5.
     giy2 := 100 + giy1.
-    Eval(gc).
+    Eval(gc). //should print the value of ‘c’
     int i.
+    //control structures
     int ia := 1.
     for i := 0 . i < 5. i := i + 1 : {
         ia := ia * i.
@@ -68,7 +68,7 @@ fn int main() {
     while false : {
 
     }
-    // comment?
+    //the evaluation of an AST for any function call should return a default value associated with the type 
     Eval(gfun(10, 10.5, gs)).
     Eval(check()).
     gb := check() == true && giy1 + gfun(10, 10.5, gs) > giy2.

@@ -443,7 +443,7 @@ std::string SymbolData::valueStr() const {
     }
     switch(type()) {
         case INT :
-            return std::to_string(std::get<int>(_value));
+            return  std::to_string(std::get<int>(_value));
         case FLOAT: {
             std::string floatStr = std::to_string(std::get<float>(_value));
             while (floatStr.back() == '0') floatStr.pop_back();
@@ -473,7 +473,7 @@ std::string SymbolData::trueValueStr() const {
         case BOOL:
             return (std::get<bool>(_value) == 1) ? "true" : "false";
         case CHAR:
-            return std::to_string(std::get<char>(_value));
+            return std::string(1, std::get<char>(_value));
         case STRING:
             return std::get<std::string>(_value);
         default:
