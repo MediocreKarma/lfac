@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
 #include "types.h"
 #include "AST.h"
 
@@ -494,7 +495,8 @@ stmt : sep_stmt SEP
 
 sep_stmt  : assignment {}
           | RETURN expr {/*
-               todo: check if expr is of func type
+               todo: check if expr is of func type.
+               // dar nu stiu cum luam functia curenta!
           */}
           | decl_assign {}
           | decl_only {}
@@ -684,7 +686,6 @@ expr : '(' expr ')' {$$ = $2;}
                     auto defaultSymbol = classDef.instantiateClass("", "");
                     $$ = new AST(defaultSymbol);
                     break;
-
           }
 
           delete $1;
@@ -699,12 +700,23 @@ void yyerror(const std::string& s) {
 }
 
 int main(int argc, char** argv) {
-     yyin=fopen(argv[1],"r");
+     if (argc != 2 and argc != 3) {
+          Utils::printError("Usage: " + std::string(argv[0]) + " <input filename> [<output filename>]", false);
+          exit(1);
+     }
+     yyin = fopen(argv[1], "r");
+
      try {
           yyparse();
      }
      catch(std::exception& e) {
           yyerror(e.what());
      }
-     symbolTable.print(std::cout);
+     if (argc == 2) {
+          symbolTable.print(std::cout);
+     }
+     else if (argc == 3) {
+          std::ofstream fout(argv[2]);
+          symbolTable.print(fout);
+     }
 } 

@@ -13,6 +13,6 @@ namespace Utils {
     char  preprocessCharLiteral(const char* input);
     std::string encodeStringValue(const std::string& input);
 
-    void printError(const std::string& input);
-    void printWarning(const std::string& input);
+    void printError(const std::string& input, bool lineno = true);
+    void printWarning(const std::string& input, bool lineno = true);
 }
