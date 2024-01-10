@@ -147,10 +147,10 @@ SymbolData& SymbolData::assign(const SymbolData& symbol) {
         from += ' ' + symbol.className();
     }
     if (isArray()) {
-        from += fullMatrixForm(_sizes);
+        to += fullMatrixForm(_sizes);
     }
     if (symbol.isArray()) {
-        to += fullMatrixForm(symbol._sizes);
+        from += fullMatrixForm(symbol._sizes);
     }
     if (sameType(*this, symbol) == false || thisVec.size() != symbolVec.size()) {
         throw std::runtime_error("Cannot assign type: " + from + " to type: " + to);
