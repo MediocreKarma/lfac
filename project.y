@@ -502,8 +502,8 @@ sep_stmt  : assignment {}
           | decl_assign {}
           | decl_only {}
           | function_call { delete $1; }
-          | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: " << $3->trueValueStr() << "\033[0m\n";}
-          | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: " << $3->typeStr() << "\033[0m\n";}
+          | EVAL '(' expr ')' {std::cout << "\033[1;32mEVAL: [\033[0m" << $3->trueValueStr() << "\033[1;32m]\033[0m\n";}
+          | TYPEOF '(' expr ')' {std::cout << "\033[1;36mTYPEOF: [\033[0m" << $3->typeStr() << "\033[1;36m]\033[0m\n";}
           | DO ':' block WHILE expr {if ($5->type() != TypeNms::BOOL) {yyerror("Condition of do-while loop has to be of boolean type");}} 
           ;
 

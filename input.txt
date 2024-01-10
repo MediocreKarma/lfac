@@ -89,6 +89,7 @@ fn int main() {
     cha := '\n'.
 
     str := "abc\"def" + "def\n\nssss".
+    Eval(str).
     int test_test.
     if 2 < 3 : {
         Eval(247).
