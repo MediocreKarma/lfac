@@ -488,8 +488,16 @@ function_call  : ID '(' expr_list ')' {
 
                     auto type = fxnSymbol->type();
                     auto className = fxnSymbol->className();
-                    // trebuie schimbat apelul de functie pt vector<size_t>!!!
-                    $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, 0, className);
+                    if (className.empty() and type == TypeNms::CUSTOM) {
+                         yyerror("Cannot derive classname from existing symbol in order to create a symbol with the same class type");
+                    }
+                    if (type != TypeNms::CUSTOM) {
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, nullptr);
+                    }
+                    else {
+                         auto classDef = symbolTable.findClass(className);
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, classDef);
+                    }
                }
                | identifier MEMBER ID '(' expr_list ')' {
                     if ($1->type() != TypeNms::CUSTOM) {
@@ -520,8 +528,16 @@ function_call  : ID '(' expr_list ')' {
                     
                     auto type = methodSymbol->type();
                     auto methodSymClassname = methodSymbol->className();
-                    // trebuie schimbat apelul de functie pt vector<size_t>!!!
-                    $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, 0, methodSymClassname);
+                    if (className.empty() and type == TypeNms::CUSTOM) {
+                         yyerror("Cannot derive classname from existing symbol in order to create a symbol with the same class type");
+                    }
+                    if (type != TypeNms::CUSTOM) {
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, nullptr);
+                    }
+                    else {
+                         auto classDef = symbolTable.findClass(className);
+                         $$ = new SymbolData("", "", type, SymbolData::Flag::Variable, {}, classDef);
+                    }
                }
                ;
         
