@@ -45,6 +45,6 @@ def {
 ENDFUNCTIONS
 
 fn int main() { 
-    int x := 3.
-    Eval(x).
+    class A a := {1, 2}.
+    class A b := a.
 }
