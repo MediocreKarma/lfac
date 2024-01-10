@@ -18,6 +18,14 @@ class A {
     }
 }
 
+class Vec3i {
+    members {
+        int x.
+        int y.
+        int z.
+    }
+}
+
 ENDCLASSES
 
 GLOBALS
@@ -51,4 +59,6 @@ fn int main() {
     int x[2][2] := {{1, 2}, {3, 4}}.
     int y[2][2] := {x[0], {1, 2}}.
     int z[2][2] := y.
+
+    class Vec3i point := {100, 100, 100}.
 }

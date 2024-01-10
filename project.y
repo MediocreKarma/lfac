@@ -48,7 +48,8 @@ class SymbolTable symbolTable;
 %token<charValue> CHARVAL
 %type<astNode> expr
 %type<list> list_param fn_param
-%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner initializer_list_elem expr_list expr_list_ext expr_list_elem function_call
+%type<symbolValue> function_declaration decl decl_only decl_assign identifier assignment initializer_list initializer_list_inner 
+%type<symbolValue> initializer_list_elem expr_list expr_list_ext expr_list_elem function_call class_name
 %type<list> class_members class_members1
 %type<sizeList> index_list
 
@@ -95,15 +96,21 @@ classes_block: classes_block class_definition
              | /* epsilon */
              ;
 
-class_definition:   CLASS ID '{' {
-                         if (symbolTable.findClass($2) != nullptr) {
-                              yyerror(std::string("Class ") + $2 + " already defined");
+class_definition    : class_name MEMBERS '{' class_members '}' DECL '{' functions_decl '}' DEF '{' class_methods_def '}' '}' {
+                         SymbolData* classDef = $1;
+                         SymbolList* ptr = $4;
+                         while (ptr != nullptr) {
+                              classDef->addSymbol(*ptr->symbol);
+                              symbolTable.remove(*ptr->symbol);
+                              SymbolList* next = ptr->next;
+                              delete ptr;
+                              ptr = next;
                          }
-                         symbolTable.addClass($2);
-                         symbolTable.enterScope($2);
-                    } MEMBERS '{' class_members '}' DECL '{' functions_decl '}' DEF '{' class_methods_def '}' '}' {
-                         SymbolData* classDef = symbolTable.findClass($2);
-                         SymbolList* ptr = $7;
+                         symbolTable.exitScope();
+                    }
+                    | class_name MEMBERS '{' class_members '}' '}' {
+                         SymbolData* classDef = $1;
+                         SymbolList* ptr = $4;
                          while (ptr != nullptr) {
                               classDef->addSymbol(*ptr->symbol);
                               symbolTable.remove(*ptr->symbol);
@@ -114,6 +121,15 @@ class_definition:   CLASS ID '{' {
                          symbolTable.exitScope();
                     }
                     ;
+
+class_name: CLASS ID '{' {
+               if (symbolTable.findClass($2) != nullptr) {
+                    yyerror(std::string("Class ") + $2 + " already defined");
+               }
+               symbolTable.addClass($2);
+               symbolTable.enterScope($2);
+               $$ = symbolTable.findClass($2);
+          }
 
 class_members  : class_members1 { $$ = $1; }
                | /* epsilon */ { $$ = nullptr; }
