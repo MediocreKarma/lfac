@@ -67,7 +67,8 @@ SymbolData AST::evaluateUnary() const {
         throw std::runtime_error("Cannot evaluate unary-op AST with non-initialized left-subtree value");
     }
 
-    symbol.setType(leftEval.type());
+    symbol.setType(_type); // ca stim deja ce tip tre sa fie!
+    auto operandType = _left->_type;
     if (Operation::booleanOperator(op)) {
         switch (op) {
             case NEGB:
@@ -80,7 +81,7 @@ SymbolData AST::evaluateUnary() const {
     else if (Operation::expressionOperator(op)) {
         switch (op) {
             case NEG:
-                switch(symbol.type()) {
+                switch(operandType) {
                     case INT:
                         symbol.assign(-std::get<int>(leftEval.value()));
                         break;
@@ -95,15 +96,49 @@ SymbolData AST::evaluateUnary() const {
                 } 
         }
     }
+    else {
+        throw std::runtime_error("Invalid unary operator");
+    }
     return symbol;
 }
 
-AST::AST(Operation::UnaryOp op, const AST* _left) :
-    _symbol(), _left(_left) {
-    
+AST::AST(Operation::UnaryOp op, const AST* left) :
+    _symbol(), _left(left) {
+
+    if (_left == nullptr) {
+        throw std::runtime_error("Cannot create binary-op AST with both subtrees null");
+    }
+
+    using namespace TypeNms;
+    using enum Operation::UnaryOp;
+
     _isOperation = true;
     _op = static_cast<int>(op);
     _operationType = Operation::Type::UNARY;
+
+    auto operandType = _left->_type;
+
+    if (Operation::booleanOperator(op)) {
+        switch (op) {
+            case NEGB:
+                if (operandType != BOOL) {
+                    throw std::invalid_argument("Cannot apply negation operator to a non-boolean value");
+                }
+        }
+    }
+    else if (Operation::expressionOperator(op)) {
+        switch (op) {
+            case NEG:
+                if (operandType != INT and operandType != CHAR and operandType != FLOAT) {
+                    throw std::invalid_argument("Cannot apply unary minus operator to a non-numeric or char value");
+                } 
+        }
+    }
+    else {
+        throw std::runtime_error("Invalid unary operator");
+    }
+    
+    _type = operandType;
 }
 
 SymbolData AST::evaluateBinary() const {
@@ -123,13 +158,13 @@ SymbolData AST::evaluateBinary() const {
     if (!leftEval.isInit() or !rightEval.isInit()) {
         throw std::runtime_error("Cannot evaluate binary-op AST with non-initialized values on either subtree");
     }
-
-   
     if (leftEval.value().index() != rightEval.value().index()) {
         throw std::runtime_error("std::variant indexes not matching in AST value index evaluation");
     }
-    symbol.setType(leftEval.type());
-    if (symbol.type() == BOOL) {
+
+    auto operandType = _left->_type; // ambele vor fi la fel, prin constructie
+    symbol.setType(_type);
+    if (operandType == BOOL) {
         if (Operation::booleanOperator(op)) {
             switch (op) {
                 case ORB:
@@ -146,17 +181,16 @@ SymbolData AST::evaluateBinary() const {
                     break;
                 default: throw std::runtime_error("Invalid boolean operator");;
             }
-            
         }
-        throw std::runtime_error("Invalid operation for boolean type");
+        else {
+            throw std::runtime_error("Invalid operation for boolean type");
+        }
     }
     else {
         if (Operation::conversionOperator(op)) {
-            auto oldType = symbol.type();
-            symbol.setType(BOOL);
             switch (op) {
                 case LT:
-                    switch (oldType) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) < std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) < std::get<float>(rightEval.value())); break;
                         case STRING: symbol.assign(std::get<std::string>(leftEval.value()) < std::get<std::string>(rightEval.value())); break;
@@ -165,7 +199,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case LEQ:
-                    switch (oldType) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) <= std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) <= std::get<float>(rightEval.value())); break;
                         case STRING: symbol.assign(std::get<std::string>(leftEval.value()) <= std::get<std::string>(rightEval.value())); break;
@@ -174,7 +208,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case GT:
-                    switch (oldType) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) > std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) > std::get<float>(rightEval.value())); break;
                         case STRING: symbol.assign(std::get<std::string>(leftEval.value()) > std::get<std::string>(rightEval.value())); break;
@@ -183,7 +217,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case GEQ:
-                    switch (oldType) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) >= std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) >= std::get<float>(rightEval.value())); break;
                         case STRING: symbol.assign(std::get<std::string>(leftEval.value()) >= std::get<std::string>(rightEval.value())); break;
@@ -200,10 +234,10 @@ SymbolData AST::evaluateBinary() const {
                 default: throw std::runtime_error("Invalid conversion operator");
             }
         }
-        if (Operation::expressionOperator(op)) {
+        else if (Operation::expressionOperator(op)) {
             switch (op) {
                 case PLUS:
-                    switch (symbol.type()) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) + std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) + std::get<float>(rightEval.value())); break;
                         case STRING: symbol.assign(std::get<std::string>(leftEval.value()) + std::get<std::string>(rightEval.value())); break;
@@ -212,7 +246,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case MINUS:
-                    switch (symbol.type()) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) - std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) - std::get<float>(rightEval.value())); break;
                         case CHAR: symbol.assign(std::get<char>(leftEval.value()) - std::get<char>(rightEval.value())); break;
@@ -220,7 +254,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case MULT:
-                    switch (symbol.type()) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) * std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) * std::get<float>(rightEval.value())); break;
                         case CHAR: symbol.assign(std::get<char>(leftEval.value()) * std::get<char>(rightEval.value())); break;
@@ -228,7 +262,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case DIV:
-                    switch (symbol.type()) {
+                    switch (operandType) {
                         case INT: symbol.assign(std::get<int>(leftEval.value()) / std::get<int>(rightEval.value())); break;
                         case FLOAT: symbol.assign(std::get<float>(leftEval.value()) / std::get<float>(rightEval.value())); break;
                         case CHAR: symbol.assign(std::get<char>(leftEval.value()) / std::get<char>(rightEval.value())); break;
@@ -236,7 +270,7 @@ SymbolData AST::evaluateBinary() const {
                     }
                     break;
                 case POW:
-                    switch (symbol.type()) {
+                    switch (operandType) {
                         case INT: symbol.assign(static_cast<int>(std::pow(std::get<int>(leftEval.value()), std::get<int>(rightEval.value())))); break;
                         case FLOAT: symbol.assign(static_cast<float>(std::pow(std::get<float>(leftEval.value()), std::get<float>(rightEval.value())))); break;
                         case CHAR: symbol.assign(static_cast<char>(std::pow(std::get<char>(leftEval.value()), std::get<char>(rightEval.value())))); break;
@@ -246,6 +280,9 @@ SymbolData AST::evaluateBinary() const {
                 default:;
                     throw std::runtime_error("Invalid expression operator");
             }
+        }
+        else {
+            throw std::runtime_error("Invalid binary operator");
         }
     } 
 
@@ -257,6 +294,10 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
 
     using namespace TypeNms;
     using enum Operation::BinaryOp;
+
+    if (_left == nullptr or _right == nullptr) {
+        throw std::runtime_error("Cannot create binary-op AST with both subtrees null");
+    }
 
     _isOperation = true;
     _op = static_cast<int>(op);
@@ -310,7 +351,7 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
                 default: throw std::runtime_error("Invalid conversion operator");
             }
         }
-        if (Operation::expressionOperator(op)) {
+        else if (Operation::expressionOperator(op)) {
             switch (op) {
                 case PLUS:
                     if (_type == CUSTOM or _type == BOOL) {
@@ -341,12 +382,10 @@ AST::AST(Operation::BinaryOp op, const AST* left, const AST* right) :
                     throw std::runtime_error("Invalid expression operator");
             }
         }
-    } 
-
-
-
-
-
+        else {
+            throw std::runtime_error("Invalid binary operator");
+        }
+    }
 }
 
 std::string AST::typeStr() const {

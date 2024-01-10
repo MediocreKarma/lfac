@@ -53,6 +53,8 @@ def {
 ENDFUNCTIONS
 
 fn int main() { 
+    Eval(247 + fxn(7, 5) == 243 + 4 && false).
+    
 
     class My elem := {10 + 20, 5}.
 
