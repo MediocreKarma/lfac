@@ -629,7 +629,8 @@ sep_stmt  : assignment {}
 non_sep_stmt   : if_expr ELSE ':' block {} 
                | if_expr {}
                | WHILE expr { if ($2->type() != TypeNms::BOOL) {yyerror("Condition of while loop has to be of boolean type");}}':' block
-               | FOR assignment {} SEP expr { if ($5->type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block
+               | FOR {symbolTable.enterAnonymousScope();} assignment {} SEP expr { if ($6->type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block {symbolTable.exitScope();}
+               | FOR {symbolTable.enterAnonymousScope();} decl_assign {} SEP expr { if ($6->type() != TypeNms::BOOL) {yyerror("Condition of for loop has to be of boolean type");}} SEP assignment ':'  {} block {symbolTable.exitScope();}
                | block {}
                ;
 

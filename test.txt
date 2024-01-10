@@ -61,4 +61,12 @@ fn int main() {
     int z[2][2] := y.
 
     class Vec3i point := {100, 100, 100}.
+    if x[0][0] > z[0][0] : {
+        Eval(10 + 5).
+    }
+
+    for int x := 0. x < 10. x := x + 1 : {
+        int x := 10.
+        Eval(x).
+    }
 }
