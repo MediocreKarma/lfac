@@ -45,6 +45,10 @@ def {
 ENDFUNCTIONS
 
 fn int main() { 
-    class A a := {1, 2}.
-    class A b := a.
+    class A a[2] := {{1, 2}, {3, 4}}.
+    const class A b[2] := a.
+
+    int x[2][2] := {{1, 2}, {3, 4}}.
+    int y[2][2] := {x[0], {1, 2}}.
+    int z[2][2] := y.
 }

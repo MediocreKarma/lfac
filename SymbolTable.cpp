@@ -408,7 +408,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         out << '\n' << std::string(depth, '\t');
     }
     if (!sd.isFunc()) {
-        out << (sd.isConst() ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) 
+        out << (sd.isConst() ? "Constant" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) 
             << (sd.isArray() ? fullMatrixForm(sd.sizes()) : "") << ", name: \'" + sd.name() + "\'" << (depth == 0 ? ", in scope \'" + sd.scope() + '\'' : "");
         
         
