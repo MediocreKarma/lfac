@@ -191,7 +191,7 @@ function_declaration: FN TYPE ID {symbolTable.enterScope($3); } '(' fn_param ')'
                     }
                     ;
 
-function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' '{' statement_list '}' {
+function_definition : FN TYPE ID {symbolTable.enterScope($3); symbolTable.setReturnType(TypeNms::strToType($2));} '(' fn_param ')' '{' statement_list '}' {
                          SymbolList* ptr = $6;
                          std::vector<SymbolData> symbols;
                          while (ptr != nullptr) {
@@ -214,7 +214,7 @@ function_definition : FN TYPE ID {symbolTable.enterScope($3);} '(' fn_param ')' 
                               yyerror(std::string("Definition of function ") + $3 + " has different signature than that of its declaration");
                          }
                     }
-                    | FN CLASS ID ID {symbolTable.enterScope($4);} '(' fn_param ')' '{' statement_list '}' {
+                    | FN CLASS ID ID {symbolTable.enterScope($4); symbolTable.setReturnType(TypeNms::Type::CUSTOM, $3);} '(' fn_param ')' '{' statement_list '}' {
                          SymbolData* classDef = symbolTable.findClass($3);
                          SymbolList* ptr = $7;
                          std::vector<SymbolData> symbols;
@@ -494,10 +494,11 @@ stmt : sep_stmt SEP
      ;
 
 sep_stmt  : assignment {}
-          | RETURN expr {/*
-               todo: check if expr is of func type.
-               // dar nu stiu cum luam functia curenta!
-          */}
+          | RETURN expr {
+               if (symbolTable.sameReturnType($2->symbol().type(), $2->symbol().className()) == false) {
+                    yyerror("Return type does not match function signature");
+               }
+          }
           | decl_assign {}
           | decl_only {}
           | function_call { delete $1; }

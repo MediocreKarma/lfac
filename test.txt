@@ -11,12 +11,29 @@ class A {
     def {
         fn int f(int k) {
             self->x := 1.
+            return 1.
         }
     }
 }
 
 ENDCLASSES
 
+FUNCTIONS
+decl {
+    fn class A function().
+
+}
+def {
+    fn class A function() {
+        class A a := {1, 1}.
+        return a.
+    }
+}
+
+ENDFUNCTIONS
+
 fn int main() { 
     const class A arr[2] := {{2, 4}, {3, 5}}.
+    const string str := "abecedar".
+    Eval(str).
 }

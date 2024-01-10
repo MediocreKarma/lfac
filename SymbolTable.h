@@ -101,6 +101,7 @@ private:
     Value _value;
 
     void throwWhenUnassignable(const Value& val);
+    void recursiveScopeApply();
 };
 
 
@@ -111,7 +112,9 @@ public:
     SymbolTable& add(const std::string& name, TypeNms::Type type, SymbolData::Flag flag, const std::vector<size_t>& sizes, const SymbolData* classDef);
     SymbolTable& add(const SymbolData& data);
     SymbolTable& remove(const SymbolData& data);
+    SymbolTable& setReturnType(TypeNms::Type t, const std::string& className = "");
     bool contains(const std::string& name);
+    bool sameReturnType(TypeNms::Type t, const std::string& className = "");
 
     SymbolTable& addClass(const std::string& name);
 
@@ -126,10 +129,12 @@ public:
     SymbolData* findClass(const std::string& name);
 
 private:
-    
     std::unordered_map<std::string, std::unique_ptr<SymbolData>> _table;
     std::unordered_map<std::string, std::unique_ptr<SymbolData>> _classesTable;
     std::vector<SymbolData*> _orderedTable;
     std::vector<SymbolData*> _orderedClassesTable;
     std::vector<std::string> _currentScopeHierarchy = {""};
+
+    TypeNms::Type _returnType;
+    std::string _returnClass;
 };

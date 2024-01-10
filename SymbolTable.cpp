@@ -312,12 +312,22 @@ const std::vector<size_t>& SymbolData::sizes() const {
     return _sizes;
 }
 
+void SymbolData::recursiveScopeApply() {
+    if (std::holds_alternative<std::vector<SymbolData>>(value())) {
+    for (SymbolData& subSymbol : std::get<std::vector<SymbolData>>(_value)) {
+            subSymbol._scope = _scope;
+            subSymbol.recursiveScopeApply();
+        }
+    }
+}
+
 SymbolData SymbolData::instantiateClass(const std::string& scope, const std::string& name) const {
     if (!_isClassDef) {
         throw std::invalid_argument("Cannot clone non-class-template symbol " + _name);
     }
     SymbolData symbol(*this);
     symbol._scope = scope;
+    symbol.recursiveScopeApply();
     symbol._name = name;
     symbol._className = _className;
     return symbol;
@@ -395,7 +405,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
     }
     if (!sd.isFunc()) {
         out << (sd.isConst() ? "Const variable" : "Variable") << " with type: " << typeToStr(sd.type()) + (sd.type() != CUSTOM ? "" : " " + sd._className) 
-            << (sd.isArray() ? fullMatrixForm(sd.sizes()) : "") << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
+            << (sd.isArray() ? fullMatrixForm(sd.sizes()) : "") << ", name: \'" + sd.name() + "\'" << (depth == 0 ? ", in scope \'" + sd.scope() + '\'' : "");
         
         
         if (sd.type() == CUSTOM or sd.isArray()) {
@@ -409,7 +419,7 @@ void printSubsymbol(std::ostream& out, const SymbolData& sd, size_t depth) {
         }
     }
     else {
-        out << "Function with type: " << typeToStr(sd._type) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" << sd.name() << "\', in scope \'" << sd.scope() << '\'';
+        out << "Function with type: " << typeToStr(sd._type) + (sd.type() != CUSTOM ? "" : " " + sd._className) << ", name: \'" + sd.name() + "\'" << (depth == 0 ? ", in scope \'" + sd.scope() + '\'' : "");
         for (const auto& subSymbol : std::get<std::vector<SymbolData>>(sd.value())) {
             printSubsymbol(out, subSymbol, depth + 1);
         }
@@ -435,9 +445,9 @@ std::string SymbolData::valueStr() const {
         case BOOL:
             return (std::get<bool>(_value) == 1) ? "true" : "false";
         case CHAR:
-            return Utils::encodeStringValue(std::string() + std::get<char>(_value));
+            return "\'" + Utils::encodeStringValue(std::string() + std::get<char>(_value)) + "\'";
         case STRING:
-            return Utils::encodeStringValue(std::get<std::string>(_value));
+            return "\"" + Utils::encodeStringValue(std::get<std::string>(_value)) + "\"";
         default:
             return "non-base-type";
     }
@@ -486,8 +496,18 @@ SymbolTable& SymbolTable::remove(const SymbolData& data) {
     return *this;
 }
 
+SymbolTable& SymbolTable::setReturnType(TypeNms::Type t, const std::string& className) {
+    _returnType = t;
+    _returnClass = className;
+    return *this;
+}
+
 bool SymbolTable::contains(const std::string& name) {
     return _table.contains(Scope::scopeWithNameToString(currentScope(), name));
+}
+
+bool SymbolTable::sameReturnType(TypeNms::Type t, const std::string& className) {
+    return _returnType == t && _returnClass == className;
 }
 
 void SymbolTable::print(std::ostream& out) {
