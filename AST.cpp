@@ -56,8 +56,16 @@ SymbolData AST::evaluateUnary() const {
     auto symbol = SymbolData();
     auto op = static_cast<Operation::UnaryOp>(_op);
 
+    if (_left == nullptr) {
+        throw std::runtime_error("Cannot evaluate unary-op AST with null subtree");
+    }
+
     // evaluam doar left
     auto leftEval = _left->evaluate();
+
+    if (!leftEval.isInit()) {
+        throw std::runtime_error("Cannot evaluate unary-op AST with non-initialized left-subtree value");
+    }
 
     symbol.setType(leftEval.type());
     if (Operation::booleanOperator(op)) {
@@ -103,7 +111,7 @@ SymbolData AST::evaluateBinary() const {
     using enum Operation::BinaryOp;
 
     if (_left == nullptr or _right == nullptr) {
-        throw std::runtime_error("Cannot evaluate binary-op AST with null values on either side");
+        throw std::runtime_error("Cannot evaluate binary-op AST with both subtrees null");
     }
 
     auto symbol = SymbolData();
@@ -111,6 +119,10 @@ SymbolData AST::evaluateBinary() const {
 
     auto leftEval = _left->evaluate();
     auto rightEval = _right->evaluate();
+
+    if (!leftEval.isInit() or !rightEval.isInit()) {
+        throw std::runtime_error("Cannot evaluate binary-op AST with non-initialized values on either subtree");
+    }
 
    
     if (leftEval.value().index() != rightEval.value().index()) {

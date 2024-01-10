@@ -126,11 +126,16 @@ SymbolData& SymbolData::setType(TypeNms::Type type) {
 }
 
 SymbolData& SymbolData::assign(const SymbolData& symbol) {
+    if (!sameType(*this, symbol)) {
+        throw std::runtime_error("Cannot assign symbol" + symbol.name() + " of type " + TypeNms::typeToStr(symbol.type()) + ( !symbol.className().empty() ? " " + symbol.className() : "") +  " to symbol " + _name + " of type " + TypeNms::typeToStr(_type) );
+    }
+    if (symbol.isInit() == false) {
+        throw std::runtime_error("Cannot assign uninitialized symbol " + symbol.name() + " to symbol " + _name);
+    }
     if (std::holds_alternative<std::vector<SymbolData>>(value()) == false) {
         this->assign(symbol.value());
         return *this;
     }
-    //throwWhenUnassignable(symbol.value());
           std::vector<SymbolData>&   thisVec = std::get<std::vector<SymbolData>>(_value);
     const std::vector<SymbolData>& symbolVec = std::get<std::vector<SymbolData>>(symbol._value);
     std::string from  = TypeNms::typeToStr(symbol.type());
