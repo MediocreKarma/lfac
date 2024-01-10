@@ -270,9 +270,16 @@ identifier: ID {
           | identifier MEMBER ID {
                $$ = $1->member($3);
                if ($$ == nullptr) yyerror(std::string("Cannot access undefined member ") + $3 + " of symbol " + $1->name());
-          }
-          | identifier '[' INTVAL ']' {
-               $$ = $1->member($3);
+          }s
+          | identifier '[' expr ']' {
+               if ($3->type() != TypeNms::Type::INT) {
+                    yyerror("Cannot index an array with a non-integer expression");
+               }
+               int i = std::get<int>($3->symbol().value());
+               if (i < 0) {
+                    yyerror("Cannot index an array with a negative integer expression");
+               }
+               $$ = $1->member(i);
                if ($$ == nullptr) yyerror(std::string("Array index out of bounds for symbol ") + $1->name());
           }
           | SELF MEMBER identifier {
