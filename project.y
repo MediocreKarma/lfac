@@ -841,12 +841,12 @@ int main(int argc, char** argv) {
           exit(1);
      }
      yyin = fopen(argv[1], "r");
-     //try {
+     try {
           yyparse();
-     //}
-     //catch(std::exception& e) {
-     //     yyerror(e.what());
-     //}
+     }
+     catch(std::exception& e) {
+          yyerror(e.what());
+     }
      if (argc == 2) {
           symbolTable.print(std::cout);
      }
