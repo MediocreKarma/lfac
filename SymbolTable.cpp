@@ -439,8 +439,12 @@ std::string SymbolData::valueStr() const {
     switch(type()) {
         case INT :
             return std::to_string(std::get<int>(_value));
-        case FLOAT:
-            return std::to_string(std::get<float>(_value));
+        case FLOAT: {
+            std::string floatStr = std::to_string(std::get<float>(_value));
+            while (floatStr.back() == '0') floatStr.pop_back();
+            if (floatStr.back() == '.') floatStr.push_back('0');
+            return floatStr;
+        }
         case BOOL:
             return (std::get<bool>(_value) == 1) ? "true" : "false";
         case CHAR:
